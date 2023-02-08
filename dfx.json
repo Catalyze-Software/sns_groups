@@ -1,0 +1,14 @@
+{
+  "canisters": {
+    "canister": {
+      "build": [
+        "cargo build -q --target wasm32-unknown-unknown --package  canister --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/canister.wasm -o target/wasm32-unknown-unknown/release/canister-opt.wasm"
+      ],
+      "candid": "candid/canister.did",
+      "wasm": "target/wasm32-unknown-unknown/release/canister-opt.wasm",
+      "package": "canister",
+      "type": "custom"
+    }
+  }
+}
