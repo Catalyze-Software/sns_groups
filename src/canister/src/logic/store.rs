@@ -10,6 +10,7 @@ use ic_scalable_misc::{
     enums::{
         api_error_type::{ApiError, ApiErrorType},
         canister_type::CanisterType,
+        filter_type::FilterType,
         wasm_version_type::WasmVersion,
         whitelist_rights_type::WhitelistRights,
     },
@@ -25,6 +26,8 @@ use ic_scalable_misc::{
         whitelist_models::WhitelistEntry,
     },
 };
+
+use crate::models::group_model::{GroupFilter, GroupResponse};
 
 #[derive(CandidType, Clone, Deserialize)]
 pub struct ScalableMetaData {
@@ -731,5 +734,46 @@ impl ScalableData {
             location: format!("{}/{}/{}", id(), &Self::get_name(), method_name),
             inputs,
         })
+    }
+
+    pub async fn get_child_canister_data(
+        filters: Vec<GroupFilter>,
+        filter_type: FilterType,
+    ) -> Vec<GroupResponse> {
+        let canisters: Vec<Principal> = DATA.with(|data| {
+            data.borrow()
+                .canisters
+                .clone()
+                .into_iter()
+                .map(|c| c.1.principal.clone())
+                .collect()
+        });
+
+        let mut groups: Vec<GroupResponse> = vec![];
+        for canister in canisters {
+            let mut canister_data =
+                Self::get_filtered_child_data(canister, &filters, &filter_type).await;
+            groups.append(&mut canister_data);
+        }
+
+        groups
+    }
+
+    async fn get_filtered_child_data(
+        canister_principal: Principal,
+        filters: &Vec<GroupFilter>,
+        filter_type: &FilterType,
+    ) -> Vec<GroupResponse> {
+        let result: Result<(Vec<GroupResponse>,), _> = call::call(
+            canister_principal,
+            "get_groups_for_parent",
+            (filters, filter_type),
+        )
+        .await;
+
+        match result {
+            Ok(groups) => groups.0,
+            _ => vec![],
+        }
     }
 }

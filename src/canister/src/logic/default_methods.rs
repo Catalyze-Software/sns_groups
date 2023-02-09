@@ -46,9 +46,11 @@ fn init(name: String, owner: Principal, parent: Principal) {
 #[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
 pub fn __export_did_tmp_() -> String {
     use crate::logic::store::ScalableMetaData;
+    use crate::models::group_model::*;
     use candid::export_service;
     use ic_cdk::api::management_canister::http_request::HttpResponse;
     use ic_scalable_misc::enums::api_error_type::ApiError;
+    use ic_scalable_misc::enums::filter_type::FilterType;
     use ic_scalable_misc::enums::wasm_version_type::WasmVersion;
     use ic_scalable_misc::models::canister_models::ScalableCanisterDetails;
     use ic_scalable_misc::models::http_models::HttpRequest;

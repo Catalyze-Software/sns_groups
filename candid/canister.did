@@ -1,3 +1,13 @@
+type Address = record {
+  street : text;
+  country : text;
+  city : text;
+  postal_code : text;
+  label : text;
+  state_or_province : text;
+  house_number : text;
+  house_number_addition : text;
+};
 type ApiError = variant {
   SerializeError : ErrorMessage;
   DeserializeError : ErrorMessage;
@@ -9,6 +19,8 @@ type ApiError = variant {
   Unexpected : ErrorMessage;
   BadRequest : ErrorMessage;
 };
+type Asset = variant { Url : text; None; CanisterStorage : CanisterStorage };
+type CanisterStorage = variant { None; Manifest : Manifest; Chunk : ChunkData };
 type CanisterType = variant {
   Empty;
   Foundation;
@@ -16,11 +28,60 @@ type CanisterType = variant {
   ScalableChild;
   Scalable;
 };
+type ChunkData = record {
+  chunk_id : nat64;
+  canister : principal;
+  index : nat64;
+};
+type DateRange = record { end_date : nat64; start_date : nat64 };
 type ErrorMessage = record {
   tag : text;
   message : text;
   inputs : opt vec text;
   location : text;
+};
+type FilterType = variant { Or; And };
+type Gated = record {
+  "principal" : principal;
+  name : text;
+  description : text;
+  amount : nat64;
+  standard : text;
+};
+type GroupFilter = variant {
+  Tag : nat32;
+  UpdatedOn : DateRange;
+  MemberCount : record { nat64; nat64 };
+  Name : text;
+  Identifiers : vec principal;
+  Owner : principal;
+  CreatedOn : DateRange;
+};
+type GroupResponse = record {
+  updated_on : nat64;
+  banner_image : Asset;
+  owner : principal;
+  name : text;
+  matrix_space_id : text;
+  tags : vec nat32;
+  description : text;
+  created_by : principal;
+  created_on : nat64;
+  website : text;
+  privacy : Privacy;
+  image : Asset;
+  identifier : principal;
+  member_count : nat64;
+  location : Location;
+  roles : vec GroupRole;
+  is_deleted : bool;
+};
+type GroupRole = record {
+  permissions : vec Permission;
+  name : text;
+  color : text;
+  protected : bool;
+  index : opt nat64;
 };
 type HttpHeader = record { value : text; name : text };
 type HttpRequest = record {
@@ -34,6 +95,8 @@ type HttpResponse = record {
   body : vec nat8;
   headers : vec HttpHeader;
 };
+type Location = variant { None; Digital : text; Physical : PhysicalLocation };
+type Manifest = record { entries : vec ChunkData };
 type PagedResponse = record {
   total : nat64;
   data : vec WhitelistEntry;
@@ -41,6 +104,23 @@ type PagedResponse = record {
   limit : nat64;
   number_of_pages : nat64;
 };
+type Permission = record {
+  name : text;
+  actions : PermissionActions;
+  protected : bool;
+};
+type PermissionActions = record {
+  edit : bool;
+  read : bool;
+  delete : bool;
+  write : bool;
+};
+type PhysicalLocation = record {
+  longtitude : float32;
+  address : Address;
+  lattitude : float32;
+};
+type Privacy = variant { Gated : vec Gated; Private; Public; InviteOnly };
 type Result = variant { Ok : bool; Err : ApiError };
 type Result_1 = variant { Ok : principal; Err : ApiError };
 type Result_2 = variant { Ok : ScalableCanisterDetails; Err : text };
@@ -96,6 +176,7 @@ service : (text, principal, principal) -> {
       vec nat8,
       opt principal,
     ) -> (Result_1);
+  get_all_data : (vec GroupFilter, FilterType) -> (vec GroupResponse) query;
   get_available_canister : () -> (Result_2) query;
   get_canisters : () -> (vec ScalableCanisterDetails) query;
   get_latest_wasm_version : () -> (WasmVersion) query;
