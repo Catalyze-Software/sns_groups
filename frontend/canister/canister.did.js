@@ -223,7 +223,7 @@ export const idlFactory = ({ IDL }) => {
     'get_all_data' : IDL.Func(
         [IDL.Vec(GroupFilter), FilterType],
         [IDL.Vec(GroupResponse)],
-        ['query'],
+        [],
       ),
     'get_available_canister' : IDL.Func([], [Result_2], ['query']),
     'get_canisters' : IDL.Func(

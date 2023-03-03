@@ -14,8 +14,8 @@ name="generate"
 path = "src/lib.rs"
 
 [dependencies]
-ic-cdk = "0.6.0"
-ic-cdk-macros = "0.6.0"
+ic-cdk = "0.6.8"
+ic-cdk-macros = "0.6.8"
 candid = "0.8.2"
 serde = "1.0"
-ic_scalable_misc = "0.2.37"
+ic_scalable_misc = "0.2.39"

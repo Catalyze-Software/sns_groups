@@ -176,7 +176,7 @@ service : (text, principal, principal) -> {
       vec nat8,
       opt principal,
     ) -> (Result_1);
-  get_all_data : (vec GroupFilter, FilterType) -> (vec GroupResponse) query;
+  get_all_data : (vec GroupFilter, FilterType) -> (vec GroupResponse);
   get_available_canister : () -> (Result_2) query;
   get_canisters : () -> (vec ScalableCanisterDetails) query;
   get_latest_wasm_version : () -> (WasmVersion) query;

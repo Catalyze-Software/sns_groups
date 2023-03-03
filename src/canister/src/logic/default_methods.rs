@@ -55,7 +55,6 @@ pub fn __export_did_tmp_() -> String {
     use ic_scalable_misc::models::canister_models::ScalableCanisterDetails;
     use ic_scalable_misc::models::http_models::HttpRequest;
     use ic_scalable_misc::models::paged_response_models::PagedResponse;
-    use ic_scalable_misc::models::wasm_models::WasmDetails;
     export_service!();
     __export_service()
 }

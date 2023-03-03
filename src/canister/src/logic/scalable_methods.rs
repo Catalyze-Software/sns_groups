@@ -14,7 +14,6 @@ use ic_scalable_misc::{
         canister_models::ScalableCanisterDetails,
         http_models::{HeaderField, HttpRequest, HttpResponse},
         paged_response_models::PagedResponse,
-        wasm_models::WasmDetails,
         whitelist_models::WhitelistEntry,
     },
 };
@@ -67,17 +66,17 @@ fn get_canisters() -> Vec<ScalableCanisterDetails> {
     ScalableData::get_canisters()
 }
 
-#[query]
-#[candid_method(query)]
-fn get_wasms() -> Result<WasmDetails, ApiError> {
-    ScalableData::get_wasm(caller())
-}
+// #[query]
+// #[candid_method(query)]
+// fn get_wasms() -> Result<WasmDetails, ApiError> {
+//     ScalableData::get_wasm(caller())
+// }
 
-#[update]
-#[candid_method(update)]
-fn add_wasm(label: String, bytes: Vec<u8>) -> Result<bool, ApiError> {
-    ScalableData::add_wasm(caller(), label, bytes)
-}
+// #[update]
+// #[candid_method(update)]
+// fn add_wasm(label: String, bytes: Vec<u8>) -> Result<bool, ApiError> {
+//     ScalableData::add_wasm(caller(), label, bytes)
+// }
 
 #[update]
 #[candid_method(update)]
