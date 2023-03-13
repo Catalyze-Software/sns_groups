@@ -38,11 +38,11 @@ pub fn post_upgrade() {
 
 #[init]
 #[candid_method(init)]
-fn init(name: String, owner: Principal, parent: Principal) {
+fn init(parent: Principal) {
     DATA.with(|v| {
         let mut data = v.borrow_mut();
-        data.name = name;
-        data.owner = owner;
+        data.name = "group_parent".to_string();
+        data.owner = parent;
         data.parent = parent;
         data.child_wasm_data = ScalableData::get_child_wasm_data(&data, 0_0_1).unwrap();
         data.whitelist = vec![];
