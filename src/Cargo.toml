@@ -1,5 +1,5 @@
 [package]
-name = "scalable_parent"
+name = "group"
 version = "0.1.0"
 edition = "2018"
 
@@ -10,4 +10,6 @@ path = "lib.rs"
 crate-type = ["lib"]
 
 [dependencies]
-canister = { path = "canister"}
+parent = { path = "parent"}
+child = { path = "child"}
+shared = { path = "shared"}

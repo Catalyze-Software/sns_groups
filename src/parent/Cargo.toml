@@ -1,0 +1,22 @@
+[package]
+name = "parent"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["cdylib"]
+
+[[test]]
+name="generate"
+path = "src/lib.rs"
+
+[dependencies]
+ic-cdk = {version = "0.6.8", features = ["timers"]}
+ic-cdk-macros = "0.6.8"
+candid = "0.8.2"
+serde = "1.0"
+ic_scalable_misc = "0.2.40"
+shared = { path = "../shared" }

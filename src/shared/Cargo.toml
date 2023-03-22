@@ -1,5 +1,5 @@
 [package]
-name = "canister"
+name = "shared"
 version = "0.1.0"
 edition = "2018"
 
@@ -7,15 +7,9 @@ edition = "2018"
 
 [lib]
 path = "src/lib.rs"
-crate-type = ["cdylib"]
-
-[[test]]
-name="generate"
-path = "src/lib.rs"
+crate-type = ["lib"]
 
 [dependencies]
-ic-cdk = "0.6.0"
-ic-cdk-macros = "0.6.0"
 candid = "0.8.2"
+ic_scalable_misc = "0.2.40"
 serde = "1.0"
-ic_scalable_misc = "0.2.37"

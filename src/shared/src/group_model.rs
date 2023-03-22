@@ -77,7 +77,7 @@ pub struct UpdateGroup {
     pub tags: Vec<u32>,
 }
 
-#[derive(Clone, CandidType, Deserialize, Debug)]
+#[derive(Clone, CandidType, Serialize, Deserialize, Debug)]
 pub struct GroupResponse {
     pub identifier: Principal,
     pub name: String,

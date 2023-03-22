@@ -11,23 +11,22 @@ use ic_scalable_misc::{
         api_error_type::{ApiError, ApiErrorType},
         canister_type::CanisterType,
         filter_type::FilterType,
+        sort_type::SortDirection,
         wasm_version_type::WasmVersion,
-        whitelist_rights_type::WhitelistRights,
     },
     helpers::{
         canister_helper::{Canister, CanisterID, CanisterSettings, InstallCodeMode},
         error_helper::api_error,
-        ic_data_helper,
         paging_helper::get_paged_data,
+        serialize_helper::deserialize,
     },
     models::{
-        canister_models::ScalableCanisterDetails, error_message_models::ErrorMessage,
-        paged_response_models::PagedResponse, wasm_models::WasmDetails,
-        whitelist_models::WhitelistEntry,
+        canister_models::ScalableCanisterDetails, paged_response_models::PagedResponse,
+        wasm_models::WasmDetails, whitelist_models::WhitelistEntry,
     },
 };
 
-use crate::models::group_model::{GroupFilter, GroupResponse};
+use shared::group_model::{GroupFilter, GroupResponse, GroupSort};
 
 #[derive(CandidType, Clone, Deserialize)]
 pub struct ScalableMetaData {
@@ -67,7 +66,7 @@ impl Default for ScalableData {
         ScalableData {
             canisters: HashMap::new(),
             name: String::default(),
-            child_wasm_data: WasmDetails::default(),
+            child_wasm_data: Default::default(),
             whitelist: Vec::default(),
             owner: Principal::anonymous(),
             parent: Principal::anonymous(),
@@ -81,194 +80,6 @@ thread_local! {
     pub static DATA: RefCell<ScalableData> = RefCell::new(ScalableData::default());
 }
 impl ScalableData {
-    pub fn change_name(caller: Principal, name: String) -> bool {
-        if !Self::has_whitelist_rights(caller, WhitelistRights::ReadWrite) {
-            return false;
-        };
-
-        if DATA.with(|v| v.borrow().canisters.len() > 1) {
-            return false;
-        }
-
-        DATA.with(|v| v.borrow_mut().name = name);
-        return true;
-    }
-
-    pub fn get_metadata(caller: Principal) -> Result<ScalableMetaData, ApiError> {
-        let inputs = Some(vec![format!("caller - {}", &caller.to_string())]);
-
-        if !Self::has_whitelist_rights(caller, WhitelistRights::Read) {
-            return Err(Self::whitelist_error("get_whitelist".to_string(), inputs));
-        };
-
-        let result = DATA.with(|v| ScalableMetaData {
-            name: v.borrow().name.clone(),
-            cycles: ic_data_helper::get_cycles(),
-            used_data: ic_data_helper::get_stable_memory_size(),
-            updated_at: v.borrow().updated_at,
-            created_at: v.borrow().created_at,
-            canister_count: v.borrow().canisters.len(),
-            has_child_wasm: v.borrow().child_wasm_data.bytes.len() != 0,
-            owner: v.borrow().owner,
-            parent: v.borrow().parent,
-        });
-
-        Ok(result)
-    }
-
-    pub fn get_whitelist(
-        caller: Principal,
-        limit: usize,
-        page: usize,
-    ) -> Result<PagedResponse<WhitelistEntry>, ApiError> {
-        let inputs = Some(vec![
-            format!("caller - {}", &caller.to_string()),
-            format!("limit - {}", &limit.to_string()),
-            format!("page - {}", &page.to_string()),
-        ]);
-
-        if !Self::has_whitelist_rights(caller, WhitelistRights::Read) {
-            return Err(Self::whitelist_error("get_whitelist".to_string(), inputs));
-        };
-
-        let result = DATA.with(|v| {
-            v.borrow()
-                .whitelist
-                .iter()
-                .map(|entry| entry)
-                .cloned()
-                .collect()
-        });
-
-        Ok(get_paged_data(result, limit, page))
-    }
-
-    pub fn add_to_whitelist(
-        caller: Principal,
-        label: String,
-        principal: Principal,
-        rights: WhitelistRights,
-    ) -> Result<bool, ApiError> {
-        let inputs = Some(vec![
-            format!("caller - {}", &caller.to_string()),
-            format!("label - {}", &label),
-            format!("principal - {}", &principal.to_string()),
-            format!("rights - {}", &rights.to_string()),
-        ]);
-
-        if rights == WhitelistRights::Owner {
-            return Err(api_error(
-                ApiErrorType::BadRequest,
-                "CANT_SET_RIGHTS",
-                "It's not possible to set the whitelist rights to owner",
-                &Self::get_name(),
-                "add_to_whitelist",
-                inputs,
-            ));
-        }
-
-        if !Self::has_whitelist_rights(caller, WhitelistRights::Owner) {
-            return Err(Self::whitelist_error(
-                "add_to_whitelist".to_string(),
-                inputs,
-            ));
-        };
-
-        if DATA.with(|v| {
-            v.borrow()
-                .whitelist
-                .iter()
-                .any(|w| w.principal == principal)
-        }) {
-            return Err(api_error(
-                ApiErrorType::BadRequest,
-                "ALREADY_WHITELISTED",
-                "This principal is already whitelisted",
-                &Self::get_name(),
-                "add_to_whitelist",
-                inputs,
-            ));
-        }
-
-        let new_entry = WhitelistEntry {
-            label,
-            principal,
-            rights,
-            created_on: time(),
-        };
-
-        DATA.with(|v| v.borrow_mut().whitelist.push(new_entry));
-        Ok(true)
-    }
-
-    pub fn remove_from_whitelist(
-        caller: Principal,
-        principal: Principal,
-    ) -> Result<bool, ApiError> {
-        let inputs = Some(vec![
-            format!("caller - {}", &caller.to_string()),
-            format!("principal - {}", &principal.to_string()),
-        ]);
-
-        let whitelist_entry = DATA.with(|v| {
-            v.borrow()
-                .whitelist
-                .iter()
-                .find(|w| w.principal == principal)
-                .cloned()
-        });
-
-        match whitelist_entry {
-            None => Err(api_error(
-                ApiErrorType::NotFound,
-                "WHITELIST_ENTRY_NOT_FOUND",
-                "The whitelist entry is not found",
-                &Self::get_name(),
-                "remove_from_whitelist",
-                inputs,
-            )),
-            Some(_entry) => {
-                if _entry.rights == WhitelistRights::Owner {
-                    return Err(api_error(
-                        ApiErrorType::BadRequest,
-                        "CANT_SET_RIGHTS",
-                        "It's not possible to set the whitelist rights to owner",
-                        &Self::get_name(),
-                        "remove_from_whitelist",
-                        inputs,
-                    ));
-                }
-
-                if !Self::has_whitelist_rights(caller, WhitelistRights::Owner) {
-                    return Err(Self::whitelist_error(
-                        "remove_from_whitelist".to_string(),
-                        inputs,
-                    ));
-                };
-
-                let filtered_whitelist: Vec<WhitelistEntry> = DATA.with(|v| {
-                    v.borrow()
-                        .whitelist
-                        .iter()
-                        .filter(|w| w.principal != principal)
-                        .cloned()
-                        .collect()
-                });
-
-                DATA.with(|v| v.borrow_mut().whitelist = filtered_whitelist);
-                Ok(true)
-            }
-        }
-    }
-
-    pub fn get_name() -> String {
-        DATA.with(|v| v.borrow().name.clone())
-    }
-
-    pub fn _get_data() -> ScalableData {
-        DATA.with(|v| v.borrow().clone())
-    }
-
     pub fn get_available_canister(caller: Principal) -> Result<ScalableCanisterDetails, String> {
         let canister = DATA.with(|v| {
             v.borrow()
@@ -296,97 +107,23 @@ impl ScalableData {
         return canisters;
     }
 
-    pub fn get_wasm(caller: Principal) -> Result<WasmDetails, ApiError> {
-        let inputs = Some(vec![format!("caller - {}", &caller.to_string())]);
-
-        if !Self::has_whitelist_rights(caller, WhitelistRights::Read) {
-            return Err(Self::whitelist_error("get_whitelist".to_string(), inputs));
-        };
-
-        let result = DATA.with(|v| v.borrow().child_wasm_data.clone());
-
-        Ok(result)
-    }
-
-    pub fn add_wasm(caller: Principal, label: String, bytes: Vec<u8>) -> Result<bool, ApiError> {
-        let inputs = Some(vec![
-            format!("caller - {}", &caller.to_string()),
-            format!("bytes - {}", &bytes.len()),
-        ]);
-
-        if !Self::has_whitelist_rights(caller, WhitelistRights::ReadWrite) {
-            return Err(Self::whitelist_error("get_whitelist".to_string(), inputs));
-        };
-
-        let previous_wasm = DATA.with(|v| v.borrow().child_wasm_data.clone());
-        let new_version = match previous_wasm.wasm_version {
-            WasmVersion::Version(number) => number + 1,
-            _ => 1,
-        };
-
-        let new_wasm = WasmDetails {
-            label,
-            bytes,
-            wasm_type: CanisterType::ScalableChild,
-            wasm_version: WasmVersion::Version(new_version),
-            updated_at: time(),
-            created_at: previous_wasm.created_at,
-        };
-
-        DATA.with(|v| v.borrow_mut().child_wasm_data = new_wasm);
-        Ok(true)
-    }
-
-    pub async fn initialize_first_child_canister(caller: Principal) -> Result<Principal, ApiError> {
-        let inputs = Some(vec![format!("caller - {}", &caller.to_string())]);
-
-        if DATA.with(|v| v.borrow().child_wasm_data.bytes.len() == 0) {
-            return Err(api_error(
-                ApiErrorType::BadRequest,
-                "NO_WASM_SPECIFIED",
-                "There is no child WASM uploaded",
-                &Self::get_name(),
-                "initialize_first_child_canister",
-                inputs,
-            ));
+    pub async fn initialize_first_child_canister() -> () {
+        if DATA.with(|data| data.borrow().child_wasm_data.bytes.len()) == 0 {
+            return;
         }
 
-        if !DATA.with(|v| {
-            v.borrow()
-                .canisters
-                .iter()
-                .any(|(principal, _)| principal == &caller)
-                || Self::has_whitelist_rights(caller, WhitelistRights::ReadWrite)
-        }) {
-            return Err(api_error(
-                ApiErrorType::BadRequest,
-                "UNKNOWN_CANISTER",
-                "The caller principal isnt known to this canister",
-                &Self::get_name(),
-                "initialize_first_child_canister",
-                inputs,
-            ));
+        if DATA.with(|v| v.borrow().canisters.len() != 0) {
+            return;
         }
 
-        if DATA.with(|v| v.borrow().canisters.iter().len() != 0) {
-            return Err(api_error(
-                ApiErrorType::BadRequest,
-                "ALREADY_INITIALIZED",
-                "This scalable canister has already initialized a child canister",
-                &Self::get_name(),
-                "initialize_first_child_canister",
-                inputs,
-            ));
-        }
-
-        let new_canister = Self::spawn_empty_canister(caller).await;
-        match new_canister {
+        let new_canister = Self::spawn_empty_canister(id()).await;
+        let _ = match new_canister {
             Err(err) => Err(err),
             Ok(new_canister_principal) => {
                 let installed_canister = Self::_install_child_canister(
-                    caller,
+                    id(),
                     Self::get_name(),
-                    caller,
+                    id(),
                     new_canister_principal,
                     InstallCodeMode::Install,
                 )
@@ -396,7 +133,7 @@ impl ScalableData {
                     Ok(new_installed_canister_principal) => Ok(new_installed_canister_principal),
                 }
             }
-        }
+        };
     }
 
     pub async fn close_child_canister_and_spawn_sibling(
@@ -510,20 +247,13 @@ impl ScalableData {
     }
 
     pub async fn upgrade_child_canister(
-        caller: Principal,
         canister_principal: Principal,
     ) -> Result<ScalableCanisterDetails, ApiError> {
-        let inputs = Some(vec![
-            format!("caller - {}", &caller.to_string()),
-            format!("canister_principal - {}", &canister_principal.to_string()),
-        ]);
+        let inputs = Some(vec![format!(
+            "canister_principal - {}",
+            &canister_principal.to_string()
+        )]);
 
-        if !Self::has_whitelist_rights(caller, WhitelistRights::ReadWrite) {
-            return Err(Self::whitelist_error(
-                "upgrade_scalable_canister".to_string(),
-                inputs,
-            ));
-        };
         let data = DATA.with(|v| v.borrow().clone());
         let existing_child = data.canisters.get(&canister_principal);
         match existing_child {
@@ -583,27 +313,6 @@ impl ScalableData {
                 }
             }
         }
-    }
-
-    pub async fn reinstall_child_canister(
-        caller: Principal,
-        canister_principal: Principal,
-    ) -> Result<Principal, ApiError> {
-        if !Self::has_whitelist_rights(caller, WhitelistRights::ReadWrite) {
-            return Err(Self::whitelist_error(
-                "upgrade_scalable_canister".to_string(),
-                None,
-            ));
-        };
-
-        Self::_install_child_canister(
-            caller,
-            Self::get_name(),
-            caller,
-            canister_principal,
-            InstallCodeMode::Reinstall,
-        )
-        .await
     }
 
     async fn spawn_empty_canister(caller: Principal) -> Result<Principal, ApiError> {
@@ -673,7 +382,7 @@ impl ScalableData {
         let install_canister = Canister::from(canister_principal)
             .install_code(
                 install_code_mode,
-                data.child_wasm_data.bytes.clone(),
+                data.child_wasm_data.bytes,
                 (owner, id(), name, data.canisters.iter().len()),
             )
             .await;
@@ -706,40 +415,70 @@ impl ScalableData {
         }
     }
 
-    fn has_whitelist_rights(principal: Principal, rights: WhitelistRights) -> bool {
-        let entry = DATA.with(|v| {
-            v.borrow()
-                .whitelist
-                .iter()
-                .find(|v| v.principal == principal)
-                .cloned()
-        });
-
-        match entry {
-            None => false,
-            Some(_entry) => {
-                if _entry.rights <= rights {
-                    true
-                } else {
-                    false
-                }
+    pub async fn upgrade_children() {
+        let data = DATA.with(|data| data.borrow().clone());
+        for child in data.canisters {
+            if child.1.wasm_version != data.child_wasm_data.wasm_version {
+                match ScalableData::upgrade_child_canister(child.0.clone()).await {
+                    Ok(_) => ic_cdk::println!("Installed"),
+                    Err(err) => ic_cdk::println!("Install error: {:?}", err),
+                };
             }
         }
     }
 
-    fn whitelist_error(method_name: String, inputs: Option<Vec<String>>) -> ApiError {
-        ApiError::Unauthorized(ErrorMessage {
-            tag: "NOT_WHITELISTED".to_string(),
-            message: "You are not allowed to perform this action".to_string(),
-            location: format!("{}/{}/{}", id(), &Self::get_name(), method_name),
-            inputs,
-        })
+    pub fn get_child_wasm_data(
+        old_store: &ScalableData,
+        version: u64,
+    ) -> Result<WasmDetails, String> {
+        let bytes = include_bytes!("../../../wasm/child.wasm").to_vec();
+
+        if bytes.is_empty() {
+            return Err("No WASM found, skipping child WASM update".to_string());
+        }
+
+        if old_store.child_wasm_data.bytes == bytes {
+            return Err("WASM is the same, skipping child WASM update".to_string());
+        }
+
+        if old_store.child_wasm_data.bytes != bytes {
+            match old_store.child_wasm_data.wasm_version {
+                WasmVersion::None => {
+                    // return Err("Wrong WASM version type, skipping child WASM update".to_string())
+                }
+                WasmVersion::Version(_version) => {
+                    if version <= _version {
+                        return Err(format!(
+                            "Please provide a higher version as {_version}, skipping child WASM update"
+                        )
+                        .to_string());
+                    }
+                }
+                WasmVersion::Custom => {
+                    return Err("Wrong WASM version type, skipping child WASM update".to_string())
+                }
+            }
+        }
+
+        let details = WasmDetails {
+            label: "child_group_canister".to_string(),
+            bytes,
+            wasm_type: CanisterType::ScalableChild,
+            wasm_version: WasmVersion::Version(version),
+            updated_at: time(),
+            created_at: old_store.child_wasm_data.created_at,
+        };
+
+        Ok(details)
     }
 
     pub async fn get_child_canister_data(
+        limit: usize,
+        page: usize,
         filters: Vec<GroupFilter>,
         filter_type: FilterType,
-    ) -> Vec<GroupResponse> {
+        sort: GroupSort,
+    ) -> PagedResponse<GroupResponse> {
         let canisters: Vec<Principal> = DATA.with(|data| {
             data.borrow()
                 .canisters
@@ -756,7 +495,8 @@ impl ScalableData {
             groups.append(&mut canister_data);
         }
 
-        groups
+        let ordered_groups = Self::get_ordered_groups(groups, sort);
+        get_paged_data(ordered_groups, limit, page)
     }
 
     async fn get_filtered_child_data(
@@ -764,16 +504,71 @@ impl ScalableData {
         filters: &Vec<GroupFilter>,
         filter_type: &FilterType,
     ) -> Vec<GroupResponse> {
-        let result: Result<(Vec<GroupResponse>,), _> = call::call(
+        let (mut bytes, (_, last)) =
+            Self::get_chunked_child_data(canister_principal, filters, filter_type, 0, None).await;
+
+        if last > 1 {
+            for i in 1..last + 1 {
+                let (mut _bytes, _) =
+                    Self::get_chunked_child_data(canister_principal, filters, filter_type, i, None)
+                        .await;
+                bytes.append(&mut _bytes);
+            }
+        }
+
+        match deserialize::<Vec<GroupResponse>>(bytes.clone()) {
+            Ok(_res) => _res,
+            Err(_err) => {
+                ic_cdk::println!("Error: {}", _err);
+                vec![]
+            }
+        }
+    }
+
+    fn get_ordered_groups(mut groups: Vec<GroupResponse>, sort: GroupSort) -> Vec<GroupResponse> {
+        match sort {
+            GroupSort::CreatedOn(direction) => match direction {
+                SortDirection::Asc => groups.sort_by(|a, b| a.created_on.cmp(&b.created_on)),
+                SortDirection::Desc => groups.sort_by(|a, b| b.created_on.cmp(&a.created_on)),
+            },
+            GroupSort::UpdatedOn(direction) => match direction {
+                SortDirection::Asc => groups.sort_by(|a, b| a.updated_on.cmp(&b.updated_on)),
+                SortDirection::Desc => groups.sort_by(|a, b| b.updated_on.cmp(&a.updated_on)),
+            },
+            GroupSort::Name(direction) => match direction {
+                SortDirection::Asc => groups.sort_by(|a, b| a.name.cmp(&b.name)),
+                SortDirection::Desc => groups.sort_by(|a, b| b.name.cmp(&a.name)),
+            },
+            GroupSort::MemberCount(direction) => match direction {
+                SortDirection::Asc => groups.sort_by(|a, b| a.member_count.cmp(&b.member_count)),
+                SortDirection::Desc => groups.sort_by(|a, b| b.member_count.cmp(&a.member_count)),
+            },
+        };
+        groups
+    }
+
+    async fn get_chunked_child_data(
+        canister_principal: Principal,
+        filters: &Vec<GroupFilter>,
+        filter_type: &FilterType,
+        chunk: usize,
+        max_bytes_per_chunk: Option<usize>,
+    ) -> (Vec<u8>, (usize, usize)) {
+        let _max_bytes_per_chunk = max_bytes_per_chunk.unwrap_or(2_000_000);
+        let result: Result<(Vec<u8>, (usize, usize)), _> = call::call(
             canister_principal,
-            "get_groups_for_parent",
-            (filters, filter_type),
+            "get_chunked_data",
+            (filters, filter_type, chunk, _max_bytes_per_chunk),
         )
         .await;
 
         match result {
-            Ok(groups) => groups.0,
-            _ => vec![],
+            Ok(_res) => _res,
+            _ => (vec![], (0, 0)),
         }
+    }
+
+    fn get_name() -> String {
+        DATA.with(|v| v.borrow().name.clone())
     }
 }

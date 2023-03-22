@@ -21,13 +21,6 @@ type ApiError = variant {
 };
 type Asset = variant { Url : text; None; CanisterStorage : CanisterStorage };
 type CanisterStorage = variant { None; Manifest : Manifest; Chunk : ChunkData };
-type CanisterType = variant {
-  Empty;
-  Foundation;
-  Custom;
-  ScalableChild;
-  Scalable;
-};
 type ChunkData = record {
   chunk_id : nat64;
   canister : principal;
@@ -47,6 +40,24 @@ type Gated = record {
   description : text;
   amount : nat64;
   standard : text;
+};
+type Group = record {
+  updated_on : nat64;
+  banner_image : Asset;
+  owner : principal;
+  name : text;
+  matrix_space_id : text;
+  tags : vec nat32;
+  description : text;
+  created_by : principal;
+  created_on : nat64;
+  website : text;
+  privacy : Privacy;
+  image : Asset;
+  member_count : vec record { principal; nat64 };
+  location : Location;
+  roles : vec GroupRole;
+  is_deleted : bool;
 };
 type GroupFilter = variant {
   Tag : nat32;
@@ -83,6 +94,12 @@ type GroupRole = record {
   protected : bool;
   index : opt nat64;
 };
+type GroupSort = variant {
+  UpdatedOn : SortDirection;
+  MemberCount : SortDirection;
+  Name : SortDirection;
+  CreatedOn : SortDirection;
+};
 type HttpHeader = record { value : text; name : text };
 type HttpRequest = record {
   url : text;
@@ -99,7 +116,7 @@ type Location = variant { None; Digital : text; Physical : PhysicalLocation };
 type Manifest = record { entries : vec ChunkData };
 type PagedResponse = record {
   total : nat64;
-  data : vec WhitelistEntry;
+  data : vec GroupResponse;
   page : nat64;
   limit : nat64;
   number_of_pages : nat64;
@@ -120,73 +137,64 @@ type PhysicalLocation = record {
   address : Address;
   lattitude : float32;
 };
-type Privacy = variant { Gated : vec Gated; Private; Public; InviteOnly };
-type Result = variant { Ok : bool; Err : ApiError };
-type Result_1 = variant { Ok : principal; Err : ApiError };
-type Result_2 = variant { Ok : ScalableCanisterDetails; Err : text };
-type Result_3 = variant { Ok : ScalableMetaData; Err : ApiError };
-type Result_4 = variant { Ok : WasmDetails; Err : ApiError };
-type Result_5 = variant { Ok : PagedResponse; Err : ApiError };
-type Result_6 = variant { Ok : ScalableCanisterDetails; Err : ApiError };
-type ScalableCanisterDetails = record {
-  entry_range : record { nat64; opt nat64 };
-  "principal" : principal;
-  wasm_version : WasmVersion;
-  is_available : bool;
-  canister_type : CanisterType;
-};
-type ScalableMetaData = record {
-  updated_at : nat64;
-  canister_count : nat64;
-  owner : principal;
+type PostGroup = record {
+  banner_image : Asset;
   name : text;
-  created_at : nat64;
-  used_data : nat64;
-  cycles : nat64;
-  has_child_wasm : bool;
-  parent : principal;
+  matrix_space_id : text;
+  tags : vec nat32;
+  description : text;
+  website : text;
+  privacy : Privacy;
+  image : Asset;
+  location : Location;
+};
+type PostPermission = record { name : text; actions : PermissionActions };
+type Privacy = variant { Gated : vec Gated; Private; Public; InviteOnly };
+type Result = variant { Ok; Err : ApiError };
+type Result_1 = variant { Ok : GroupResponse; Err : ApiError };
+type Result_2 = variant { Ok : GroupRole; Err : ApiError };
+type Result_3 = variant { Ok : Group; Err : ApiError };
+type Result_4 = variant { Ok : bool; Err : ApiError };
+type Result_5 = variant { Ok : record { principal; Privacy }; Err : ApiError };
+type Result_6 = variant { Ok : PagedResponse; Err : ApiError };
+type Result_7 = variant { Ok : vec GroupResponse; Err : ApiError };
+type Result_8 = variant { Ok; Err : bool };
+type SortDirection = variant { Asc; Desc };
+type UpdateGroup = record {
+  banner_image : Asset;
+  name : text;
+  tags : vec nat32;
+  description : text;
+  website : text;
+  privacy : Privacy;
+  image : Asset;
+  location : Location;
 };
 type UpdateMessage = record { canister_principal : principal; message : text };
 type ValidationResponse = record { field : text; message : text };
-type WasmDetails = record {
-  updated_at : nat64;
-  wasm_version : WasmVersion;
-  created_at : nat64;
-  label : text;
-  bytes : vec nat8;
-  wasm_type : CanisterType;
-};
-type WasmVersion = variant { None; Version : nat64; Custom };
-type WhitelistEntry = record {
-  "principal" : principal;
-  rights : WhitelistRights;
-  created_on : nat64;
-  label : text;
-};
-type WhitelistRights = variant { Read; ReadWrite; Owner };
-service : (text, principal, principal) -> {
+service : (principal, text, nat64) -> {
   __get_candid_interface_tmp_hack : () -> (text) query;
   accept_cycles : () -> (nat64);
-  add_to_whitelist : (text, principal, WhitelistRights) -> (Result);
-  add_wasm : (text, vec nat8) -> (Result);
-  change_name : (text) -> (bool);
-  close_child_canister_and_spawn_sibling : (
-      principal,
-      nat64,
+  add_entry_by_parent : (opt principal, vec nat8) -> (Result);
+  add_group : (PostGroup, principal) -> (Result_1);
+  add_role : (principal, text, text, nat64, principal) -> (Result_2);
+  delete_group : (principal, principal) -> (Result_3);
+  edit_group : (principal, UpdateGroup, principal) -> (Result_1);
+  edit_role_permissions : (principal, text, vec PostPermission, principal) -> (
+      Result_4,
+    );
+  get_chunked_data : (vec GroupFilter, FilterType, nat64, nat64) -> (
       vec nat8,
-      opt principal,
-    ) -> (Result_1);
-  get_all_data : (vec GroupFilter, FilterType) -> (vec GroupResponse) query;
-  get_available_canister : () -> (Result_2) query;
-  get_canisters : () -> (vec ScalableCanisterDetails) query;
-  get_latest_wasm_version : () -> (WasmVersion) query;
-  get_metadata : () -> (Result_3) query;
-  get_wasms : () -> (Result_4) query;
-  get_whitelist : (nat64, nat64) -> (Result_5) query;
+      record { nat64; nat64 },
+    ) query;
+  get_group : (principal) -> (Result_1) query;
+  get_group_owner_and_privacy : (principal) -> (Result_5) query;
+  get_group_roles : (principal) -> (vec GroupRole) query;
+  get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort) -> (
+      Result_6,
+    ) query;
+  get_groups_by_id : (vec principal) -> (Result_7) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
-  initialize_first_child_canister : () -> (Result_1);
-  reinstall_child_canister : (principal) -> (Result_1);
-  remove_from_whitelist : (principal) -> (Result);
-  sanity_check : () -> (text) query;
-  upgrade_child_canister : (principal) -> (Result_6);
+  remove_role : (principal, text, principal) -> (Result_4);
+  update_member_count : (principal, principal, nat64) -> (Result_8);
 }

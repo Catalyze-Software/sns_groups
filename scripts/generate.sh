@@ -1,7 +1,8 @@
 #!/bin/sh
 
 canisters=(
-    "canister"
+    "parent"
+    "child"
 )
 
 echo -e "${GREEN}> $ENV: Generating required files..${NC}"
