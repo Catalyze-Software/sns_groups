@@ -24,51 +24,7 @@ export const idlFactory = ({ IDL }) => {
     'Unexpected' : ErrorMessage,
     'BadRequest' : ErrorMessage,
   });
-  const Result = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : ApiError });
-  const WasmVersion = IDL.Variant({
-    'None' : IDL.Null,
-    'Version' : IDL.Nat64,
-    'Custom' : IDL.Null,
-  });
-  const CanisterType = IDL.Variant({
-    'Empty' : IDL.Null,
-    'Foundation' : IDL.Null,
-    'Custom' : IDL.Null,
-    'ScalableChild' : IDL.Null,
-    'Scalable' : IDL.Null,
-  });
-  const ScalableCanisterDetails = IDL.Record({
-    'entry_range' : IDL.Tuple(IDL.Nat64, IDL.Opt(IDL.Nat64)),
-    'principal' : IDL.Principal,
-    'wasm_version' : WasmVersion,
-    'is_available' : IDL.Bool,
-    'canister_type' : CanisterType,
-  });
-  const Result_1 = IDL.Variant({
-    'Ok' : ScalableCanisterDetails,
-    'Err' : IDL.Text,
-  });
-  const DateRange = IDL.Record({
-    'end_date' : IDL.Nat64,
-    'start_date' : IDL.Nat64,
-  });
-  const GroupFilter = IDL.Variant({
-    'Tag' : IDL.Nat32,
-    'UpdatedOn' : DateRange,
-    'MemberCount' : IDL.Tuple(IDL.Nat64, IDL.Nat64),
-    'Name' : IDL.Text,
-    'Identifiers' : IDL.Vec(IDL.Principal),
-    'Owner' : IDL.Principal,
-    'CreatedOn' : DateRange,
-  });
-  const FilterType = IDL.Variant({ 'Or' : IDL.Null, 'And' : IDL.Null });
-  const SortDirection = IDL.Variant({ 'Asc' : IDL.Null, 'Desc' : IDL.Null });
-  const GroupSort = IDL.Variant({
-    'UpdatedOn' : SortDirection,
-    'MemberCount' : SortDirection,
-    'Name' : SortDirection,
-    'CreatedOn' : SortDirection,
-  });
+  const Result = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : ApiError });
   const ChunkData = IDL.Record({
     'chunk_id' : IDL.Nat64,
     'canister' : IDL.Principal,
@@ -118,6 +74,17 @@ export const idlFactory = ({ IDL }) => {
     'Digital' : IDL.Text,
     'Physical' : PhysicalLocation,
   });
+  const PostGroup = IDL.Record({
+    'banner_image' : Asset,
+    'name' : IDL.Text,
+    'matrix_space_id' : IDL.Text,
+    'tags' : IDL.Vec(IDL.Nat32),
+    'description' : IDL.Text,
+    'website' : IDL.Text,
+    'privacy' : Privacy,
+    'image' : Asset,
+    'location' : Location,
+  });
   const PermissionActions = IDL.Record({
     'edit' : IDL.Bool,
     'read' : IDL.Bool,
@@ -155,12 +122,78 @@ export const idlFactory = ({ IDL }) => {
     'roles' : IDL.Vec(GroupRole),
     'is_deleted' : IDL.Bool,
   });
+  const Result_1 = IDL.Variant({ 'Ok' : GroupResponse, 'Err' : ApiError });
+  const Result_2 = IDL.Variant({ 'Ok' : GroupRole, 'Err' : ApiError });
+  const Group = IDL.Record({
+    'updated_on' : IDL.Nat64,
+    'banner_image' : Asset,
+    'owner' : IDL.Principal,
+    'name' : IDL.Text,
+    'matrix_space_id' : IDL.Text,
+    'tags' : IDL.Vec(IDL.Nat32),
+    'description' : IDL.Text,
+    'created_by' : IDL.Principal,
+    'created_on' : IDL.Nat64,
+    'website' : IDL.Text,
+    'privacy' : Privacy,
+    'image' : Asset,
+    'member_count' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat64)),
+    'location' : Location,
+    'roles' : IDL.Vec(GroupRole),
+    'is_deleted' : IDL.Bool,
+  });
+  const Result_3 = IDL.Variant({ 'Ok' : Group, 'Err' : ApiError });
+  const UpdateGroup = IDL.Record({
+    'banner_image' : Asset,
+    'name' : IDL.Text,
+    'tags' : IDL.Vec(IDL.Nat32),
+    'description' : IDL.Text,
+    'website' : IDL.Text,
+    'privacy' : Privacy,
+    'image' : Asset,
+    'location' : Location,
+  });
+  const PostPermission = IDL.Record({
+    'name' : IDL.Text,
+    'actions' : PermissionActions,
+  });
+  const Result_4 = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ApiError });
+  const DateRange = IDL.Record({
+    'end_date' : IDL.Nat64,
+    'start_date' : IDL.Nat64,
+  });
+  const GroupFilter = IDL.Variant({
+    'Tag' : IDL.Nat32,
+    'UpdatedOn' : DateRange,
+    'MemberCount' : IDL.Tuple(IDL.Nat64, IDL.Nat64),
+    'Name' : IDL.Text,
+    'Identifiers' : IDL.Vec(IDL.Principal),
+    'Owner' : IDL.Principal,
+    'CreatedOn' : DateRange,
+  });
+  const FilterType = IDL.Variant({ 'Or' : IDL.Null, 'And' : IDL.Null });
+  const Result_5 = IDL.Variant({
+    'Ok' : IDL.Tuple(IDL.Principal, Privacy),
+    'Err' : ApiError,
+  });
+  const SortDirection = IDL.Variant({ 'Asc' : IDL.Null, 'Desc' : IDL.Null });
+  const GroupSort = IDL.Variant({
+    'UpdatedOn' : SortDirection,
+    'MemberCount' : SortDirection,
+    'Name' : SortDirection,
+    'CreatedOn' : SortDirection,
+  });
   const PagedResponse = IDL.Record({
     'total' : IDL.Nat64,
     'data' : IDL.Vec(GroupResponse),
     'page' : IDL.Nat64,
     'limit' : IDL.Nat64,
     'number_of_pages' : IDL.Nat64,
+  });
+  const Result_6 = IDL.Variant({ 'Ok' : PagedResponse, 'Err' : ApiError });
+  const Result_7 = IDL.Variant({
+    'Ok' : IDL.Vec(GroupResponse),
+    'Err' : ApiError,
   });
   const HttpRequest = IDL.Record({
     'url' : IDL.Text,
@@ -174,29 +207,71 @@ export const idlFactory = ({ IDL }) => {
     'body' : IDL.Vec(IDL.Nat8),
     'headers' : IDL.Vec(HttpHeader),
   });
+  const Result_8 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Bool });
   return IDL.Service({
     '__get_candid_interface_tmp_hack' : IDL.Func([], [IDL.Text], ['query']),
     'accept_cycles' : IDL.Func([], [IDL.Nat64], []),
-    'close_child_canister_and_spawn_sibling' : IDL.Func(
-        [IDL.Principal, IDL.Nat64, IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Principal)],
+    'add_entry_by_parent' : IDL.Func(
+        [IDL.Opt(IDL.Principal), IDL.Vec(IDL.Nat8)],
         [Result],
         [],
       ),
-    'get_available_canister' : IDL.Func([], [Result_1], ['query']),
-    'get_canisters' : IDL.Func(
+    'add_group' : IDL.Func([PostGroup, IDL.Principal], [Result_1], []),
+    'add_role' : IDL.Func(
+        [IDL.Principal, IDL.Text, IDL.Text, IDL.Nat64, IDL.Principal],
+        [Result_2],
         [],
-        [IDL.Vec(ScalableCanisterDetails)],
+      ),
+    'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_3], []),
+    'edit_group' : IDL.Func(
+        [IDL.Principal, UpdateGroup, IDL.Principal],
+        [Result_1],
+        [],
+      ),
+    'edit_role_permissions' : IDL.Func(
+        [IDL.Principal, IDL.Text, IDL.Vec(PostPermission), IDL.Principal],
+        [Result_4],
+        [],
+      ),
+    'get_chunked_data' : IDL.Func(
+        [IDL.Vec(GroupFilter), FilterType, IDL.Nat64, IDL.Nat64],
+        [IDL.Vec(IDL.Nat8), IDL.Tuple(IDL.Nat64, IDL.Nat64)],
+        ['query'],
+      ),
+    'get_group' : IDL.Func([IDL.Principal], [Result_1], ['query']),
+    'get_group_owner_and_privacy' : IDL.Func(
+        [IDL.Principal],
+        [Result_5],
+        ['query'],
+      ),
+    'get_group_roles' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(GroupRole)],
         ['query'],
       ),
     'get_groups' : IDL.Func(
         [IDL.Nat64, IDL.Nat64, IDL.Vec(GroupFilter), FilterType, GroupSort],
-        [PagedResponse],
+        [Result_6],
         ['query'],
       ),
-    'get_latest_wasm_version' : IDL.Func([], [WasmVersion], ['query']),
+    'get_groups_by_id' : IDL.Func(
+        [IDL.Vec(IDL.Principal)],
+        [Result_7],
+        ['query'],
+      ),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
+    'remove_role' : IDL.Func(
+        [IDL.Principal, IDL.Text, IDL.Principal],
+        [Result_4],
+        [],
+      ),
+    'update_member_count' : IDL.Func(
+        [IDL.Principal, IDL.Principal, IDL.Nat64],
+        [Result_8],
+        [],
+      ),
   });
 };
 export const init = ({ IDL }) => {
-  return [IDL.Text, IDL.Principal, IDL.Principal];
+  return [IDL.Principal, IDL.Text, IDL.Nat64];
 };

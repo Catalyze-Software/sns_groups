@@ -1,15 +1,15 @@
 [package]
-name = "group"
+name = "shared"
 version = "0.1.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-path = "lib.rs"
+path = "src/lib.rs"
 crate-type = ["lib"]
 
 [dependencies]
-parent = { path = "parent"}
-child = { path = "child"}
-shared = { path = "shared"}
+candid = "0.8.2"
+ic_scalable_misc = "0.2.40"
+serde = "1.0"

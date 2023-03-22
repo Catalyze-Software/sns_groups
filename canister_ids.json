@@ -1,5 +1,8 @@
 {
-    "canister": {
-        "ic": "oceks-kqaaa-aaaak-qauqq-cai"
+    "parent": {
+        "ic": "aaaaa-aa"
+    },
+    "child": {
+        "ic": "aaaaa-aa"
     }
 }

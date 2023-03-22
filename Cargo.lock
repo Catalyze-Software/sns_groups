@@ -195,17 +195,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "canister"
-version = "0.1.0"
-dependencies = [
- "candid",
- "ic-cdk",
- "ic-cdk-macros",
- "ic_scalable_misc",
- "serde",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -240,6 +229,21 @@ dependencies = [
  "cipher",
  "poly1305",
  "zeroize",
+]
+
+[[package]]
+name = "child"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic_scalable_canister",
+ "ic_scalable_misc",
+ "serde",
+ "serde_json",
+ "shared",
 ]
 
 [[package]]
@@ -587,6 +591,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "group"
+version = "0.1.0"
+dependencies = [
+ "child",
+ "parent",
+ "shared",
+]
+
+[[package]]
 name = "half"
 version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -672,6 +685,21 @@ name = "ic0"
 version = "0.18.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "978b91fc78de9d2eb0144db717839cde3b35470199ea51aca362cb6310e93dfd"
+
+[[package]]
+name = "ic_scalable_canister"
+version = "0.2.69"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05c5ac8e3c916879da80f46671330ca34d853f04567f48808260b9667feac354"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic_scalable_misc",
+ "serde",
+ "serde_cbor",
+ "serde_json",
+]
 
 [[package]]
 name = "ic_scalable_misc"
@@ -912,6 +940,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
 
 [[package]]
+name = "parent"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "ic_scalable_misc",
+ "serde",
+ "shared",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1145,13 +1185,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scalable_parent"
-version = "0.1.0"
-dependencies = [
- "canister",
-]
-
-[[package]]
 name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1261,6 +1294,15 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest 0.10.6",
+]
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic_scalable_misc",
+ "serde",
 ]
 
 [[package]]
