@@ -1,17 +1,19 @@
 use std::time::Duration;
 
 use candid::{candid_method, Principal};
-use ic_cdk::{storage, timer::set_timer};
+use ic_cdk::{caller, storage, timer::set_timer};
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query};
 
 use super::store::{ScalableData, DATA};
 
+// Stores the data in stable storage before upgrading the canister.
 #[pre_upgrade]
 pub fn pre_upgrade() {
     DATA.with(|data| storage::stable_save((&*data.borrow(),)))
         .expect("Something went wrong while upgrading");
 }
 
+// Restores the data from stable- to heap storage after upgrading the canister.
 #[post_upgrade]
 pub fn post_upgrade() {
     let (mut old_store,): (ScalableData,) = storage::stable_restore().unwrap();
@@ -36,22 +38,22 @@ pub fn post_upgrade() {
     }
 }
 
+// Init methods thats get triggered when the canister is installed
 #[init]
 #[candid_method(init)]
-fn init(parent: Principal) {
+fn init() {
     DATA.with(|v| {
         let mut data = v.borrow_mut();
         data.name = "group_parent".to_string();
-        data.owner = parent;
-        data.parent = parent;
+        data.parent = caller();
         data.child_wasm_data = ScalableData::get_child_wasm_data(&data, 0_0_1).unwrap();
-        data.whitelist = vec![];
     });
     set_timer(Duration::from_secs(0), || {
         ic_cdk::spawn(ScalableData::initialize_first_child_canister());
     });
 }
 
+// Hacky way to expose the candid interface to the outside world
 #[query(name = "__get_candid_interface_tmp_hack")]
 #[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
 pub fn __export_did_tmp_() -> String {
@@ -68,6 +70,7 @@ pub fn __export_did_tmp_() -> String {
     __export_service()
 }
 
+// Method used to save the candid interface to a file
 #[test]
 pub fn candid() {
     use ic_scalable_misc::helpers::candid_helper::save_candid;

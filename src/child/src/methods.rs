@@ -13,6 +13,8 @@ use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGrou
 
 use super::store::{Store, DATA};
 
+// This method is used to add a group to the canister,
+// The method is async because it optionally creates a new canister is created
 #[update]
 #[candid_method(update)]
 async fn add_group(
@@ -22,12 +24,14 @@ async fn add_group(
     Store::add_group(caller(), post_group, member_canister).await
 }
 
+// This method is used to get a group from the canister
 #[query]
 #[candid_method(query)]
 fn get_group(identifier: Principal) -> Result<GroupResponse, ApiError> {
     Store::get_group(identifier)
 }
 
+// This method is used to get groups filtered and sorted with pagination
 #[query]
 #[candid_method(query)]
 fn get_groups(
@@ -40,6 +44,10 @@ fn get_groups(
     Ok(Store::get_groups(limit, page, filters, filter_type, sort))
 }
 
+// COMPOSITE_QUERY PREPARATION
+// This methods is used by the parent canister to get filtered groups the (this) child canister
+// Data serialized and send as byte array chunks ` (bytes, (start_chunk, end_chunk)) `
+// The parent canister can then deserialize the data and pass it to the frontend
 #[query]
 #[candid_method(query)]
 fn get_chunked_data(
@@ -55,6 +63,8 @@ fn get_chunked_data(
     Store::get_chunked_data(filters, filter_type, chunk, max_bytes_per_chunk)
 }
 
+// This method is used to get the owner and privacy of a group
+// This is used for inter-canister calls to determine is a user can do a group specific action
 #[query]
 #[candid_method(query)]
 fn get_group_owner_and_privacy(
@@ -63,12 +73,14 @@ fn get_group_owner_and_privacy(
     Store::get_group_owner_and_privacy(group_identifier)
 }
 
+// Get multiple groups by their identifiers
 #[query]
 #[candid_method(query)]
 fn get_groups_by_id(group_identifiers: Vec<Principal>) -> Result<Vec<GroupResponse>, ApiError> {
     Ok(Store::get_groups_by_id(group_identifiers))
 }
 
+// This method is used to edit a group
 #[update]
 #[candid_method(update)]
 async fn edit_group(
@@ -82,6 +94,7 @@ async fn edit_group(
     }
 }
 
+// This method is used to (soft) delete a group
 #[update]
 #[candid_method(update)]
 async fn delete_group(
@@ -94,6 +107,7 @@ async fn delete_group(
     }
 }
 
+// This method is used to add a custom role to a group
 #[update]
 #[candid_method(update)]
 async fn add_role(
@@ -109,6 +123,7 @@ async fn add_role(
     }
 }
 
+// This method is used to remove a custom role from a group
 #[update]
 #[candid_method(update)]
 async fn remove_role(
@@ -122,12 +137,14 @@ async fn remove_role(
     }
 }
 
+// This method is used to get all the roles of a group
 #[query]
 #[candid_method(query)]
 fn get_group_roles(group_identifier: Principal) -> Vec<GroupRole> {
     Store::get_group_roles(group_identifier)
 }
 
+// This method is used to update the persmissions of a specific role
 #[update]
 #[candid_method(update)]
 async fn edit_role_permissions(
@@ -144,6 +161,9 @@ async fn edit_role_permissions(
     }
 }
 
+// This method is used as an inter canister call to update the member count per canister
+// Member count is used for backend filtering
+// TODO: distinct member_canister and caller
 #[update]
 #[candid_method(update)]
 pub fn update_member_count(

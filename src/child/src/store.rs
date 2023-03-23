@@ -38,12 +38,14 @@ thread_local! {
 pub struct Store;
 
 impl Store {
+    // Method to add a group to the data store
     pub async fn add_group(
         caller: Principal,
         post_group: PostGroup,
         member_canister: Principal,
     ) -> Result<GroupResponse, ApiError> {
         let temp_group = post_group.clone();
+        // Map "post_group" to "group" struct
         let new_group = Group {
             name: temp_group.name,
             description: temp_group.description,
@@ -56,6 +58,7 @@ impl Store {
             image: temp_group.image,
             banner_image: temp_group.banner_image,
             tags: temp_group.tags,
+            // Add initial member count of 1 when creating a group
             member_count: HashMap::from_iter(vec![(member_canister, 1)].into_iter()),
             roles: vec![],
             is_deleted: false,
@@ -63,22 +66,26 @@ impl Store {
             created_on: time(),
         };
 
-        let add_entry_result = DATA.with(|data| {
-            let validate = validate_post_group(post_group);
-            match validate {
+        // Validate the group data
+        let add_entry_result = DATA.with(|data| match validate_post_group(post_group) {
+            // Return an error if the group data is invalid
+            Err(err) => Err(err),
+
+            // Add the group to the data store and pass in the "kind" as a third parameter to generate a identifier
+            Ok(_) => match Data::add_entry(data, new_group.clone(), Some("grp".to_string())) {
                 Err(err) => Err(err),
-                Ok(_) => match Data::add_entry(data, new_group.clone(), Some("grp".to_string())) {
-                    Err(err) => Err(err),
-                    Ok(result) => Ok(result),
-                },
-            }
+                Ok(result) => Ok(result),
+            },
         });
 
+        // Check if the group was added to the data store successfully
         match add_entry_result {
+            // The group was not added to the data store because the canister is at capacity
             Err(err) => match err {
                 ApiError::CanisterAtCapacity(message) => {
                     let _data = DATA.with(|v| v.borrow().clone());
-                    match Data::spawn_sibling(_data, None, new_group.clone()).await {
+                    // Spawn a sibling canister and pass the group data to it
+                    match Data::spawn_sibling(_data, new_group.clone()).await {
                         Ok(_) => Err(ApiError::CanisterAtCapacity(message)),
                         Err(err) => Err(err),
                     }
@@ -86,12 +93,15 @@ impl Store {
                 _ => Err(err),
             },
             Ok((_identifier, _group_data)) => {
+                // Add the owner of the group to the member canister as an entry
                 match Self::add_owner(&caller, &_identifier, &member_canister).await {
                     Err(err) => {
+                        // If the owner was not added to the member canister successfully, remove the group from the data store
                         DATA.with(|data| Data::remove_entry(data, &_identifier));
                         Err(err)
                     }
                     Ok((_identifier, _group_data)) => {
+                        // If successfull return the group data
                         Ok(Self::map_group_to_group_response(_identifier, _group_data))
                     }
                 }
@@ -99,6 +109,7 @@ impl Store {
         }
     }
 
+    // Method to update a group in the data store
     pub fn update_group(
         caller: Principal,
         group_identifier: Principal,
@@ -109,15 +120,17 @@ impl Store {
             format!("id - {:?}", &group_identifier),
             format!("update_group - {:?}", &update_group),
         ]);
-        let validate = validate_update_group(update_group.clone());
-        DATA.with(|data| match validate {
+
+        // Validate the "update_group" data
+        DATA.with(|data| match validate_update_group(update_group.clone()) {
             Err(err) => Err(err),
             Ok(_) => {
-                let existing = Data::get_entry(data, group_identifier);
-
-                match existing {
+                // Check if the group exists in the data store
+                match Data::get_entry(data, group_identifier) {
+                    // Return an error if the group does not exist
                     Err(err) => Err(err),
                     Ok((_identifier, mut _group_data)) => {
+                        // If the group is deleted return an error
                         if _group_data.is_deleted {
                             return Err(api_error(
                                 ApiErrorType::BadRequest,
@@ -128,21 +141,19 @@ impl Store {
                                 inputs,
                             ));
                         }
+                        // Update group fields
+                        _group_data.name = update_group.name;
+                        _group_data.description = update_group.description;
+                        _group_data.website = update_group.website;
+                        _group_data.location = update_group.location;
+                        _group_data.privacy = update_group.privacy;
+                        _group_data.image = update_group.image;
+                        _group_data.banner_image = update_group.banner_image;
+                        _group_data.tags = update_group.tags;
+                        _group_data.updated_on = time();
 
-                        let updated_group = Group {
-                            name: update_group.name,
-                            description: update_group.description,
-                            website: update_group.website,
-                            location: update_group.location,
-                            privacy: update_group.privacy,
-                            image: update_group.image,
-                            banner_image: update_group.banner_image,
-                            tags: update_group.tags,
-                            updated_on: time(),
-                            .._group_data
-                        };
                         let update_group_result =
-                            Data::update_entry(data, group_identifier, updated_group.clone());
+                            Data::update_entry(data, group_identifier, _group_data);
                         match update_group_result {
                             Err(err) => Err(err),
                             Ok((_identifier, _group_data)) => {
@@ -155,16 +166,18 @@ impl Store {
         })
     }
 
+    // Method to delete a group from the data store
     pub fn delete_group(caller: Principal, identifier: Principal) -> Result<Group, ApiError> {
         let inputs = Some(vec![
             format!("caller - {:?}", &caller),
             format!("id - {:?}", &identifier),
         ]);
         DATA.with(|data| {
-            let existing = Data::get_entry(data, identifier);
-            match existing {
+            // Check if the group exists in the data store
+            match Data::get_entry(data, identifier) {
                 Err(err) => Err(err),
                 Ok((_identifier, mut _group_data)) => {
+                    // Check of the group owner is also the caller
                     if _group_data.owner != caller {
                         return Err(api_error(
                             ApiErrorType::Unauthorized,
@@ -191,30 +204,27 @@ impl Store {
         })
     }
 
+    // Method to get a group with an identifier from the data store
     pub fn get_group(identifier: Principal) -> Result<GroupResponse, ApiError> {
-        DATA.with(|data| {
-            let group = Data::get_entry(data, identifier);
-            match group {
-                Err(err) => Err(err),
-                Ok((_identifier, _group_data)) => {
-                    Ok(Self::map_group_to_group_response(_identifier, _group_data))
-                }
+        DATA.with(|data| match Data::get_entry(data, identifier) {
+            Err(err) => Err(err),
+            Ok((_identifier, _group_data)) => {
+                Ok(Self::map_group_to_group_response(_identifier, _group_data))
             }
         })
     }
 
+    // Method to get a group with an identifier from the data store
     pub fn get_group_owner_and_privacy(
         identifier: Principal,
     ) -> Result<(Principal, Privacy), ApiError> {
-        DATA.with(|data| {
-            let group = Data::get_entry(data, identifier);
-            match group {
-                Err(err) => Err(err),
-                Ok((_, _group_data)) => Ok((_group_data.owner, _group_data.privacy)),
-            }
+        DATA.with(|data| match Data::get_entry(data, identifier) {
+            Err(err) => Err(err),
+            Ok((_, _group_data)) => Ok((_group_data.owner, _group_data.privacy)),
         })
     }
 
+    // This method is used to get groups filtered and sorted with pagination
     pub fn get_groups(
         limit: usize,
         page: usize,
@@ -223,20 +233,29 @@ impl Store {
         sort: GroupSort,
     ) -> PagedResponse<GroupResponse> {
         let groups = DATA.with(|data| Data::get_entries(data));
+        // Get groups for filtering and sorting
         let mapped_groups: Vec<GroupResponse> = groups
             .iter()
+            // Filter out deleted groups
             .filter(|(_identifier, _group_data)| !_group_data.is_deleted)
+            // Map groups to group response
             .map(|(_identifier, _group_data)| {
                 Self::map_group_to_group_response(_identifier.clone(), _group_data.clone())
             })
             .collect();
 
+        // Filter groups
         let filtered_groups = Self::get_filtered_groups(mapped_groups, filters, filter_type);
+        // Order groups
         let ordered_groups = Self::get_ordered_groups(filtered_groups, sort);
 
+        // Paginate groups and return
         get_paged_data(ordered_groups, limit, page)
     }
 
+    // Used for composite_query calls from the parent canister
+    //
+    // Method to get filtered groups serialized and chunked
     pub fn get_chunked_data(
         filters: Vec<GroupFilter>,
         filter_type: FilterType,
@@ -244,9 +263,12 @@ impl Store {
         max_bytes_per_chunk: usize,
     ) -> (Vec<u8>, (usize, usize)) {
         let groups = DATA.with(|data| Data::get_entries(data));
+        // Get groups for filtering
         let mapped_groups: Vec<GroupResponse> = groups
             .iter()
+            // Filter out deleted groups
             .filter(|(_identifier, _group_data)| !_group_data.is_deleted)
+            // Map groups to group response
             .map(|(_identifier, _group_data)| {
                 Self::map_group_to_group_response(_identifier.clone(), _group_data.clone())
             })
@@ -254,35 +276,47 @@ impl Store {
 
         let filtered_groups = Self::get_filtered_groups(mapped_groups, filters, filter_type);
         if let Ok(bytes) = serialize(&filtered_groups) {
+            // Check if the bytes of the serialized groups are greater than the max bytes per chunk specified as an argument
             if bytes.len() >= max_bytes_per_chunk {
+                // Get the start and end index of the bytes to be returned
                 let start = chunk * max_bytes_per_chunk;
                 let end = (chunk + 1) * (max_bytes_per_chunk);
 
+                // Get the bytes to be returned, if the end index is greater than the length of the bytes, return the remaining bytes
                 let response = if end >= bytes.len() {
                     bytes[start..].to_vec()
                 } else {
                     bytes[start..end].to_vec()
                 };
 
+                // Determine the max number of chunks that can be returned, a float is used because the number of chunks can be a decimal in this step
                 let mut max_chunks: f64 = 0.00;
                 if max_bytes_per_chunk < bytes.len() {
                     max_chunks = (bytes.len() / max_bytes_per_chunk) as f64;
                 }
+
+                // return the response and start and end chunk index, the end chunk index is calculated by rounding up the max chunks
                 return (response, (chunk, max_chunks.ceil() as usize));
             }
+
+            // if the bytes of the serialized groups are less than the max bytes per chunk specified as an argument, return the bytes and start and end chunk index as 0
             return (bytes, (0, 0));
         } else {
+            // if the groups cant be serialized return an empty vec and start and end chunk index as 0
             return (vec![], (0, 0));
         }
     }
 
+    // Method to get multiple groups with an identifier from the data store
     pub fn get_groups_by_id(group_ids: Vec<Principal>) -> Vec<GroupResponse> {
         DATA.with(|data| {
             let mut groups: Vec<GroupResponse> = vec![];
 
+            // Loop over the group ids and get the group data
             group_ids.into_iter().for_each(|_identifier| {
                 let existing = Data::get_entry(data, _identifier);
 
+                // If the group data exists, map it to a group response and push it to the groups vec
                 match existing {
                     Err(_) => {}
                     Ok((_identifier, _group_data)) => {
@@ -296,6 +330,7 @@ impl Store {
         })
     }
 
+    // Method to add a custom role to the group
     pub fn add_role(
         caller: Principal,
         group_identifier: Principal,
@@ -308,9 +343,12 @@ impl Store {
             format!("group_id - {:?}", &group_identifier),
             format!("role_name - {:?}", &role_name),
         ]);
+
+        // get the group data
         DATA.with(|data| match Data::get_entry(data, group_identifier) {
             Err(err) => Err(err),
             Ok((_identifier, mut _group_data)) => {
+                // check if the caller is the owner of the group
                 if _group_data.owner != caller {
                     return Err(api_error(
                         ApiErrorType::Unauthorized,
@@ -325,6 +363,7 @@ impl Store {
                 let mut roles = _group_data.roles;
                 let included_role = roles.iter().any(|r| r.name == role_name);
 
+                // check if the role name already exists in the custom or default roles
                 if included_role || default_roles().iter().any(|r| r.name == role_name) {
                     return Err(api_error(
                         ApiErrorType::BadRequest,
@@ -339,8 +378,10 @@ impl Store {
                 let new_role = GroupRole {
                     name: role_name,
                     protected: false,
+                    // set default permissions to read-only
                     permissions: get_read_only_permissions(),
                     color,
+                    // optional sorting index
                     index: Some(index),
                 };
 
@@ -360,6 +401,7 @@ impl Store {
         })
     }
 
+    // Method to do an inter-canister call to the member canister to add an owner as a member
     async fn add_owner(
         owner_principal: &Principal,
         group_identifier: &Principal,
@@ -398,6 +440,7 @@ impl Store {
         })
     }
 
+    // Method to get a list of all group roles
     pub fn get_group_roles(group_identifier: Principal) -> Vec<GroupRole> {
         let group = DATA.with(|data| Data::get_entry(data, group_identifier));
         if let Ok((_, mut _group)) = group {
@@ -408,6 +451,7 @@ impl Store {
     }
 
     // TODO: inter-canister call to remove role from members
+    // Method to remove custom role from group
     pub fn remove_role(
         caller: Principal,
         group_identifier: Principal,
@@ -419,65 +463,65 @@ impl Store {
             format!("role_name` - {:?}", &role_name),
         ]);
 
-        DATA.with(|data| {
-            let existing_group = Data::get_entry(data, group_identifier);
+        DATA.with(|data| match Data::get_entry(data, group_identifier) {
+            Err(err) => Err(err),
+            Ok((_identifier, mut _group_data)) => {
+                // check if the caller is the owner of the group
+                if _group_data.owner != caller {
+                    return Err(api_error(
+                        ApiErrorType::Unauthorized,
+                        "UNAUTHORIZED",
+                        "Only owner of a group can add roles",
+                        Data::get_name(data).as_str(),
+                        "add_role",
+                        inputs,
+                    ));
+                }
+                // check if the role exists
+                let existing_role = _group_data
+                    .roles
+                    .iter()
+                    .find(|r| r.name == role_name && r.protected);
 
-            match existing_group {
-                Err(err) => Err(err),
-                Ok((_identifier, mut _group_data)) => {
-                    if _group_data.owner != caller {
-                        return Err(api_error(
-                            ApiErrorType::Unauthorized,
-                            "UNAUTHORIZED",
-                            "Only owner of a group can add roles",
-                            Data::get_name(data).as_str(),
-                            "add_role",
-                            inputs,
-                        ));
-                    }
-                    let existing_role = _group_data
-                        .roles
-                        .iter()
-                        .find(|r| r.name == role_name && r.protected);
+                match existing_role {
+                    None => Err(api_error(
+                        ApiErrorType::NotFound,
+                        "ROLE_NOT_FOUND",
+                        "The role cant be found for this group",
+                        Data::get_name(data).as_str(),
+                        "remove_role",
+                        inputs,
+                    )),
+                    Some(_role) => {
+                        // if the role is protected (default roles) then return an error
+                        if _role.protected {
+                            return Err(api_error(
+                                ApiErrorType::BadRequest,
+                                "PROTECTED_ROLE",
+                                "This role is protected from deletion",
+                                Data::get_name(data).as_str(),
+                                "remove_role",
+                                inputs,
+                            ));
+                        };
 
-                    match existing_role {
-                        None => Err(api_error(
-                            ApiErrorType::NotFound,
-                            "ROLE_NOT_FOUND",
-                            "The role cant be found for this group",
-                            Data::get_name(data).as_str(),
-                            "remove_role",
-                            inputs,
-                        )),
-                        Some(_role) => {
-                            if _role.protected {
-                                return Err(api_error(
-                                    ApiErrorType::BadRequest,
-                                    "PROTECTED_ROLE",
-                                    "This role is protected from deletion",
-                                    Data::get_name(data).as_str(),
-                                    "remove_role",
-                                    inputs,
-                                ));
-                            };
+                        // remove the role to update from the existing roles
+                        let updated_roles: Vec<GroupRole> = _group_data
+                            .roles
+                            .iter()
+                            .filter(|r| r.name != role_name)
+                            .cloned()
+                            .collect();
 
-                            let updated_roles: Vec<GroupRole> = _group_data
-                                .roles
-                                .iter()
-                                .filter(|r| r.name == role_name)
-                                .cloned()
-                                .collect();
+                        _group_data.roles = updated_roles;
+                        _group_data.updated_on = time();
 
-                            _group_data.roles = updated_roles;
-                            _group_data.updated_on = time();
+                        let update_group_result =
+                            Data::update_entry(data, _identifier, _group_data);
 
-                            let update_group_result =
-                                Data::update_entry(data, _identifier, _group_data);
-
-                            match update_group_result {
-                                Err(err) => Err(err),
-                                Ok(_) => Ok(true),
-                            }
+                        match update_group_result {
+                            Err(err) => Err(err),
+                            Ok(_) => Ok(true),
                         }
                     }
                 }
@@ -486,6 +530,7 @@ impl Store {
     }
 
     // TODO: inter-canister call to remove role from members
+    // Method to update role permissions for custom roles
     pub fn update_role_permissions(
         caller: Principal,
         group_identifier: Principal,
@@ -502,6 +547,7 @@ impl Store {
         DATA.with(|data| match Data::get_entry(data, group_identifier) {
             Err(err) => Err(err),
             Ok((_identifier, mut _group_data)) => {
+                // check if the caller is the owner of the group
                 if _group_data.owner != caller {
                     return Err(api_error(
                         ApiErrorType::Unauthorized,
@@ -512,6 +558,8 @@ impl Store {
                         inputs,
                     ));
                 }
+
+                // check if the role exists
                 let existing_role = _group_data.roles.iter().find(|r| r.name == role_name);
                 match existing_role {
                     None => Err(api_error(
@@ -526,10 +574,12 @@ impl Store {
                         let mut permissions: Vec<Permission> = vec![];
                         let required_permissions = get_read_only_permissions();
 
+                        // iterate over the permissions passed as an argument
                         post_permissions.iter().for_each(|p| {
                             let required_permission =
                                 required_permissions.iter().find(|r| r.name == p.name);
 
+                            // check if the permission is a required permission
                             match required_permission {
                                 None => permissions.push(Permission {
                                     name: p.name.clone(),
@@ -537,6 +587,7 @@ impl Store {
                                     actions: p.actions.clone(),
                                 }),
                                 Some(_permission) => {
+                                    // if the permission is protected set the actions as default
                                     if _permission.protected {
                                         permissions.push(Permission {
                                             name: _permission.name.clone(),
@@ -558,6 +609,7 @@ impl Store {
                             name: _role.name.clone(),
                             protected: _role.protected,
                             permissions,
+                            // optional color for frontend consumption
                             color: _role.color.clone(),
                             index: _role.index,
                         };
@@ -640,12 +692,14 @@ impl Store {
     //     }
     // }
 
+    // Method to get filtered groups
     fn get_filtered_groups(
         mut groups: Vec<GroupResponse>,
         filters: Vec<GroupFilter>,
         filter_type: FilterType,
     ) -> Vec<GroupResponse> {
         match filter_type {
+            // this filter type will return groups that match all the filters
             FilterType::And => {
                 for filter in filters {
                     match filter {
@@ -713,6 +767,7 @@ impl Store {
                 }
                 groups
             }
+            // This filter type will return groups that match any of the filters
             FilterType::Or => {
                 let mut hashmap_groups: HashMap<Principal, GroupResponse> = HashMap::new();
                 for filter in filters {
@@ -798,6 +853,7 @@ impl Store {
         }
     }
 
+    // Method to get sorted groups
     fn get_ordered_groups(mut groups: Vec<GroupResponse>, sort: GroupSort) -> Vec<GroupResponse> {
         match sort {
             GroupSort::CreatedOn(direction) => match direction {
@@ -820,6 +876,7 @@ impl Store {
         groups
     }
 
+    // Method to map groups to a default response that can be used on the frontend
     pub fn map_group_to_group_response(identifier: Principal, group: Group) -> GroupResponse {
         let mut roles = group.roles;
         roles.append(&mut default_roles());
@@ -844,6 +901,9 @@ impl Store {
         }
     }
 
+    // This method is used as an inter canister call to update the member count per canister
+    // Member count is used for backend filtering
+    // TODO: distinct member_canister and caller
     pub fn update_member_count(
         group_identifier: Principal,
         member_canister: Principal,
@@ -868,6 +928,7 @@ impl Store {
         })
     }
 
+    // This method is used for role / permission based access control
     pub async fn can_write(
         caller: Principal,
         group_identifier: Principal,
@@ -896,6 +957,7 @@ impl Store {
         .await
     }
 
+    // This method is used for role / permission based access control
     pub async fn can_edit(
         caller: Principal,
         group_identifier: Principal,
@@ -910,6 +972,7 @@ impl Store {
         .await
     }
 
+    // This method is used for role / permission based access control
     pub async fn can_delete(
         caller: Principal,
         group_identifier: Principal,
@@ -924,6 +987,7 @@ impl Store {
         .await
     }
 
+    // Global method to determine if a member has a specific permission
     async fn check_permission(
         caller: Principal,
         group_identifier: Principal,

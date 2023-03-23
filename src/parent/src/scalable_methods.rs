@@ -15,42 +15,40 @@ use ic_scalable_misc::{
 
 use super::store::{ScalableData, DATA};
 
+// Method to retrieve an available canister to write updated to
 #[query]
 #[candid_method(query)]
 fn get_available_canister() -> Result<ScalableCanisterDetails, String> {
     ScalableData::get_available_canister(caller())
 }
 
+// Methods to retrieve all the canisters
 #[query]
 #[candid_method(query)]
 fn get_canisters() -> Vec<ScalableCanisterDetails> {
     ScalableData::get_canisters()
 }
 
+// Method called by child canister once full (inter-canister call)
+// can only be called by a child canister
 #[update]
 #[candid_method(update)]
 async fn close_child_canister_and_spawn_sibling(
-    owner: Principal,
     last_entry_id: u64,
     entry: Vec<u8>,
-    principal_entry_reference: Option<Principal>,
 ) -> Result<Principal, ApiError> {
-    ScalableData::close_child_canister_and_spawn_sibling(
-        caller(),
-        owner,
-        last_entry_id,
-        entry,
-        principal_entry_reference,
-    )
-    .await
+    ScalableData::close_child_canister_and_spawn_sibling(caller(), last_entry_id, entry).await
 }
 
+// Method to retrieve the latest wasm version of the child canister that is currently stored
 #[query]
 #[candid_method(query)]
 fn get_latest_wasm_version() -> WasmVersion {
     DATA.with(|v| v.borrow().child_wasm_data.wasm_version.clone())
 }
 
+// HTTP request handler
+// canister metrics are added to the response
 #[query]
 #[candid_method(query)]
 fn http_request(req: HttpRequest) -> HttpResponse {
@@ -69,6 +67,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
     _http_request(req, path_entries)
 }
 
+// Method to accept cycles when send to this canister
 #[update]
 #[candid_method(update)]
 fn accept_cycles() -> u64 {
