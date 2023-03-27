@@ -73,7 +73,7 @@ thread_local! {
     pub static DATA: RefCell<ScalableData> = RefCell::new(ScalableData::default());
 }
 impl ScalableData {
-    // Method to retrieve an available canister to write updated to
+    // Method to retrieve an available canister to write updates to
     pub fn get_available_canister(caller: Principal) -> Result<ScalableCanisterDetails, String> {
         let canister = DATA.with(|v| {
             v.borrow()

@@ -17,20 +17,23 @@ pub fn pre_upgrade() {
 #[post_upgrade]
 pub fn post_upgrade() {
     let (mut old_store,): (ScalableData,) = storage::stable_restore().unwrap();
+    // Get the child wasm data from the old store
     let child_wasm_data = ScalableData::get_child_wasm_data(&old_store, 0_0_2);
     match child_wasm_data {
+        // If the child wasm data is found, update the data in the new store
         Ok(_child_wasm_data) => {
             DATA.with(|d| {
                 old_store.child_wasm_data = _child_wasm_data;
                 *d.borrow_mut() = old_store;
             });
 
+            // Use a timer to trigger the upgrade_children method to upgrade the child WASMs
             set_timer(Duration::from_secs(0), || {
                 ic_cdk::spawn(ScalableData::upgrade_children());
             });
         }
-        Err(error) => {
-            ic_cdk::println!("Error: {:?}", error);
+        // If the child wasm data is not found, continue restoring the old store
+        Err(_) => {
             DATA.with(|d| {
                 *d.borrow_mut() = old_store;
             });
@@ -46,8 +49,11 @@ fn init() {
         let mut data = v.borrow_mut();
         data.name = "group_parent".to_string();
         data.parent = caller();
+        // Set the child WASM data on first deploy from the file system
         data.child_wasm_data = ScalableData::get_child_wasm_data(&data, 0_0_1).unwrap();
     });
+
+    // Spawn the first child canister
     set_timer(Duration::from_secs(0), || {
         ic_cdk::spawn(ScalableData::initialize_first_child_canister());
     });

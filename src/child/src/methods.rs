@@ -44,6 +44,20 @@ fn get_groups(
     Ok(Store::get_groups(limit, page, filters, filter_type, sort))
 }
 
+// This method is used to edit a group
+#[update]
+#[candid_method(update)]
+async fn edit_group(
+    group_identifier: Principal,
+    update_group: UpdateGroup,
+    member_identifier: Principal,
+) -> Result<GroupResponse, ApiError> {
+    match Store::can_edit(caller(), group_identifier, member_identifier).await {
+        Ok(_caller) => Store::update_group(_caller, group_identifier, update_group),
+        Err(err) => Err(err),
+    }
+}
+
 // COMPOSITE_QUERY PREPARATION
 // This methods is used by the parent canister to get filtered groups the (this) child canister
 // Data serialized and send as byte array chunks ` (bytes, (start_chunk, end_chunk)) `
@@ -78,20 +92,6 @@ fn get_group_owner_and_privacy(
 #[candid_method(query)]
 fn get_groups_by_id(group_identifiers: Vec<Principal>) -> Result<Vec<GroupResponse>, ApiError> {
     Ok(Store::get_groups_by_id(group_identifiers))
-}
-
-// This method is used to edit a group
-#[update]
-#[candid_method(update)]
-async fn edit_group(
-    group_identifier: Principal,
-    update_group: UpdateGroup,
-    member_identifier: Principal,
-) -> Result<GroupResponse, ApiError> {
-    match Store::can_edit(caller(), group_identifier, member_identifier).await {
-        Ok(_caller) => Store::update_group(_caller, group_identifier, update_group),
-        Err(err) => Err(err),
-    }
 }
 
 // This method is used to (soft) delete a group
