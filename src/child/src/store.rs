@@ -58,7 +58,7 @@ impl Store {
             image: temp_group.image,
             banner_image: temp_group.banner_image,
             tags: temp_group.tags,
-            // Add initial member count of 1 when creating a group
+            // The member count is a hashmap with the canister id as key and the count as value
             member_count: HashMap::from_iter(vec![(member_canister, 1)].into_iter()),
             roles: vec![],
             is_deleted: false,
@@ -943,6 +943,7 @@ impl Store {
         .await
     }
 
+    // This method is used for role / permission based access control
     pub async fn can_read(
         caller: Principal,
         group_identifier: Principal,

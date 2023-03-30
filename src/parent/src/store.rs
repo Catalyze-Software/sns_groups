@@ -465,13 +465,17 @@ impl ScalableData {
                 .collect()
         });
 
+        // Create a vector to store the groups
         let mut groups: Vec<GroupResponse> = vec![];
+
+        // Get the data from each child canister
         for canister in canisters {
             let mut canister_data =
                 Self::get_filtered_child_data(canister, &filters, &filter_type).await;
             groups.append(&mut canister_data);
         }
 
+        // Sort the groups
         let ordered_groups = Self::get_ordered_groups(groups, sort);
         get_paged_data(ordered_groups, limit, page)
     }
