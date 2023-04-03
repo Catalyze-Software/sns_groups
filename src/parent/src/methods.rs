@@ -8,6 +8,8 @@ use shared::group_model::{GroupFilter, GroupResponse, GroupSort};
 
 use super::store::ScalableData;
 
+// Method used to get all the groups from the child canisters filtered, sorted and paged
+// requires composite queries to be released to mainnet
 #[query(composite = true)]
 #[candid_method(query)]
 async fn get_groups(
