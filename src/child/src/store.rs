@@ -7,7 +7,7 @@ use ic_scalable_misc::{
     enums::{
         api_error_type::{ApiError, ApiErrorType},
         filter_type::FilterType,
-        privacy_type::Privacy,
+        privacy_type::{GatedType, NeuronGatedRules, Privacy, TokenGated},
         sort_type::SortDirection,
     },
     helpers::{
@@ -15,10 +15,14 @@ use ic_scalable_misc::{
         paging_helper::get_paged_data,
         role_helper::{default_roles, get_member_roles, get_read_only_permissions, has_permission},
         serialize_helper::serialize,
+        token_canister_helper::{
+            dip20_balance_of, dip721_balance_of, ext_balance_of, legacy_dip721_balance_of,
+        },
     },
     models::{
         group_role::GroupRole,
         identifier_model::Identifier,
+        neuron_models::{DissolveState, ListNeurons, ListNeuronsResponse},
         paged_response_models::PagedResponse,
         permissions_models::{Permission, PermissionActionType, PermissionType, PostPermission},
     },
@@ -43,6 +47,7 @@ impl Store {
         caller: Principal,
         post_group: PostGroup,
         member_canister: Principal,
+        account_identifier: Option<String>,
     ) -> Result<GroupResponse, ApiError> {
         let temp_group = post_group.clone();
         // Map "post_group" to "group" struct
@@ -66,17 +71,29 @@ impl Store {
             created_on: time(),
         };
 
-        // Validate the group data
-        let add_entry_result = DATA.with(|data| match validate_post_group(post_group) {
-            // Return an error if the group data is invalid
+        let add_entry_result = match Self::validate_group_privacy(
+            caller,
+            account_identifier,
+            post_group.privacy.clone(),
+        )
+        .await
+        {
             Err(err) => Err(err),
+            Ok(_) => {
+                DATA.with(|data| match validate_post_group(post_group) {
+                    // Return an error if the group data is invalid
+                    Err(err) => Err(err),
 
-            // Add the group to the data store and pass in the "kind" as a third parameter to generate a identifier
-            Ok(_) => match Data::add_entry(data, new_group.clone(), Some("grp".to_string())) {
-                Err(err) => Err(err),
-                Ok(result) => Ok(result),
-            },
-        });
+                    // Add the group to the data store and pass in the "kind" as a third parameter to generate a identifier
+                    Ok(_) => {
+                        match Data::add_entry(data, new_group.clone(), Some("grp".to_string())) {
+                            Err(err) => Err(err),
+                            Ok(result) => Ok(result),
+                        }
+                    }
+                })
+            }
+        };
 
         // Check if the group was added to the data store successfully
         match add_entry_result {
@@ -637,6 +654,215 @@ impl Store {
                 }
             }
         })
+    }
+
+    async fn validate_group_privacy(
+        caller: Principal,
+        account_identifier: Option<String>,
+        privacy: Privacy,
+    ) -> Result<(), ApiError> {
+        match privacy {
+            Privacy::Public => Ok(()),
+            Privacy::Private => Ok(()),
+            Privacy::InviteOnly => Ok(()),
+            Privacy::Gated(gated_type) => {
+                let mut is_valid = false;
+                use GatedType::*;
+                match gated_type {
+                    Neuron(neuron_canisters) => {
+                        for neuron_canister in neuron_canisters {
+                            is_valid = Self::validate_neuron_gated(
+                                caller,
+                                neuron_canister.governance_canister,
+                                neuron_canister.rules,
+                            )
+                            .await;
+                            if is_valid {
+                                break;
+                            }
+                        }
+                        if is_valid {
+                            Ok(())
+                            // If the caller does not own the neuron, throw an error
+                        } else {
+                            return Err(api_error(
+                                ApiErrorType::Unauthorized,
+                                "NOT_OWNING_NEURON",
+                                "You are not owning this neuron required to join this group",
+                                DATA.with(|data| Data::get_name(data)).as_str(),
+                                "add_invite_or_join_group_to_member",
+                                None,
+                            ));
+                        }
+                    }
+                    Token(nft_canisters) => {
+                        // Loop over the canisters and check if the caller owns a specific NFT (inter-canister call)
+                        for nft_canister in nft_canisters {
+                            is_valid = Self::validate_nft_gated(
+                                caller,
+                                account_identifier.clone(),
+                                nft_canister,
+                            )
+                            .await;
+                            if is_valid {
+                                break;
+                            }
+                        }
+                        if is_valid {
+                            Ok(())
+                            // If the caller does not own the NFT, throw an error
+                        } else {
+                            return Err(api_error(
+                                ApiErrorType::Unauthorized,
+                                "NOT_OWNING_NFT",
+                                "You are not owning NFT / token required to join this group",
+                                DATA.with(|data| Data::get_name(data)).as_str(),
+                                "add_invite_or_join_group_to_member",
+                                None,
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Method to check if the caller owns a specific NFT
+    pub async fn validate_nft_gated(
+        principal: Principal,
+        account_identifier: Option<String>,
+        nft_canister: TokenGated,
+    ) -> bool {
+        // Check if the canister is a EXT, DIP20 or DIP721 canister
+        match nft_canister.standard.as_str() {
+            // If the canister is a EXT canister, check if the caller owns the NFT
+            // This call uses the account_identifier
+            "EXT" => match account_identifier {
+                Some(_account_identifier) => {
+                    let response =
+                        ext_balance_of(nft_canister.principal, _account_identifier).await;
+                    response as u64 >= nft_canister.amount
+                }
+                None => false,
+            },
+            // If the canister is a DIP20 canister, check if the caller owns the NFT
+            "DIP20" => {
+                let response = dip20_balance_of(nft_canister.principal, principal).await;
+                response as u64 >= nft_canister.amount
+            }
+            // If the canister is a DIP721 canister, check if the caller owns the NFT
+            "DIP721" => {
+                let response = dip721_balance_of(nft_canister.principal, principal).await;
+                response as u64 >= nft_canister.amount
+            }
+            // If the canister is a LEGACY DIP721 canister, check if the caller owns the NFT
+            "DIP721_LEGACY" => {
+                let response = legacy_dip721_balance_of(nft_canister.principal, principal).await;
+                response as u64 >= nft_canister.amount
+            }
+            _ => false,
+        }
+    }
+
+    // Method to check if the caller owns a specific neuron and it applies to the set rules
+    pub async fn validate_neuron_gated(
+        principal: Principal,
+        governance_canister: Principal,
+        rules: Vec<NeuronGatedRules>,
+    ) -> bool {
+        let list_neuron_arg = ListNeurons {
+            of_principal: Some(principal),
+            limit: 100,
+            start_page_at: None,
+        };
+
+        let call: Result<(ListNeuronsResponse,), _> =
+            call::call(governance_canister, "list_neurons", (list_neuron_arg,)).await;
+
+        match call {
+            Ok((neurons,)) => {
+                // iterate over the neurons and check if the neuron applies to all the set rules
+                let mut is_valid = true;
+                for neuron in neurons.neurons {
+                    for rule in rules.clone() {
+                        match rule {
+                            NeuronGatedRules::IsDisolving(_) => {
+                                match &neuron.dissolve_state {
+                                    Some(_state) => {
+                                        use DissolveState::*;
+                                        match _state {
+                                            // neuron is not in a dissolving state
+                                            DissolveDelaySeconds(_time) => {
+                                                is_valid = false;
+                                                break;
+                                            }
+                                            // means that the neuron is in a dissolving state
+                                            WhenDissolvedTimestampSeconds(_time) => {}
+                                        }
+                                    }
+                                    None => {
+                                        is_valid = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            NeuronGatedRules::MinAge(_min_age_in_seconds) => {
+                                if neuron.created_timestamp_seconds < _min_age_in_seconds {
+                                    is_valid = false;
+                                    break;
+                                }
+                            }
+                            NeuronGatedRules::MinStake(_min_stake) => {
+                                let neuron_stake =
+                                    neuron.cached_neuron_stake_e8s as f64 / 100_000_000.0;
+                                let min_stake = _min_stake as f64 / 100_000_000.0;
+
+                                if neuron_stake.ceil() < min_stake.ceil() {
+                                    is_valid = false;
+                                    break;
+                                }
+                            }
+                            NeuronGatedRules::MinDissolveDelay(_min_dissolve_delay_in_seconds) => {
+                                match &neuron.dissolve_state {
+                                    Some(_state) => {
+                                        use DissolveState::*;
+                                        match _state {
+                                            // neuron is not in a dissolving state, time is locking period in seconds
+                                            DissolveDelaySeconds(_dissolve_delay_in_seconds) => {
+                                                if &_min_dissolve_delay_in_seconds
+                                                    < _dissolve_delay_in_seconds
+                                                {
+                                                    is_valid = false;
+                                                    break;
+                                                }
+                                            }
+                                            // means that the neuron is in a dissolving state, timestamp when neuron is done dissolving in seconds
+                                            WhenDissolvedTimestampSeconds(
+                                                _timestamp_in_seconds,
+                                            ) => {
+                                                let calculated_time = _timestamp_in_seconds
+                                                    - (time() / 1_000_000_000);
+                                                if _min_dissolve_delay_in_seconds < calculated_time
+                                                {
+                                                    is_valid = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    None => {
+                                        is_valid = false;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return is_valid;
+            }
+            Err(_) => false,
+        }
     }
 
     // need to call the member canister to transfer the ownership to a new member

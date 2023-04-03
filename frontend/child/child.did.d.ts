@@ -40,13 +40,8 @@ export interface ErrorMessage {
 }
 export type FilterType = { 'Or' : null } |
   { 'And' : null };
-export interface Gated {
-  'principal' : Principal,
-  'name' : string,
-  'description' : string,
-  'amount' : bigint,
-  'standard' : string,
-}
+export type GatedType = { 'Neuron' : Array<NeuronGated> } |
+  { 'Token' : Array<TokenGated> };
 export interface Group {
   'updated_on' : bigint,
   'banner_image' : Asset,
@@ -118,6 +113,16 @@ export type Location = { 'None' : null } |
   { 'Digital' : string } |
   { 'Physical' : PhysicalLocation };
 export interface Manifest { 'entries' : Array<ChunkData> }
+export interface NeuronGated {
+  'governance_canister' : Principal,
+  'name' : string,
+  'description' : string,
+  'rules' : Array<NeuronGatedRules>,
+}
+export type NeuronGatedRules = { 'IsDisolving' : boolean } |
+  { 'MinStake' : bigint } |
+  { 'MinAge' : bigint } |
+  { 'MinDissolveDelay' : bigint };
 export interface PagedResponse {
   'total' : bigint,
   'data' : Array<GroupResponse>,
@@ -156,7 +161,7 @@ export interface PostPermission {
   'name' : string,
   'actions' : PermissionActions,
 }
-export type Privacy = { 'Gated' : Array<Gated> } |
+export type Privacy = { 'Gated' : GatedType } |
   { 'Private' : null } |
   { 'Public' : null } |
   { 'InviteOnly' : null };
@@ -180,6 +185,13 @@ export type Result_8 = { 'Ok' : null } |
   { 'Err' : boolean };
 export type SortDirection = { 'Asc' : null } |
   { 'Desc' : null };
+export interface TokenGated {
+  'principal' : Principal,
+  'name' : string,
+  'description' : string,
+  'amount' : bigint,
+  'standard' : string,
+}
 export interface UpdateGroup {
   'banner_image' : Asset,
   'name' : string,
@@ -198,11 +210,8 @@ export interface ValidationResponse { 'field' : string, 'message' : string }
 export interface _SERVICE {
   '__get_candid_interface_tmp_hack' : ActorMethod<[], string>,
   'accept_cycles' : ActorMethod<[], bigint>,
-  'add_entry_by_parent' : ActorMethod<
-    [[] | [Principal], Uint8Array | number[]],
-    Result
-  >,
-  'add_group' : ActorMethod<[PostGroup, Principal], Result_1>,
+  'add_entry_by_parent' : ActorMethod<[Uint8Array | number[]], Result>,
+  'add_group' : ActorMethod<[PostGroup, Principal, [] | [string]], Result_1>,
   'add_role' : ActorMethod<
     [Principal, string, string, bigint, Principal],
     Result_2

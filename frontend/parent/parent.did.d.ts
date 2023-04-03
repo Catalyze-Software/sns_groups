@@ -45,13 +45,8 @@ export interface ErrorMessage {
 }
 export type FilterType = { 'Or' : null } |
   { 'And' : null };
-export interface Gated {
-  'principal' : Principal,
-  'name' : string,
-  'description' : string,
-  'amount' : bigint,
-  'standard' : string,
-}
+export type GatedType = { 'Neuron' : Array<NeuronGated> } |
+  { 'Token' : Array<TokenGated> };
 export type GroupFilter = { 'Tag' : number } |
   { 'UpdatedOn' : DateRange } |
   { 'MemberCount' : [bigint, bigint] } |
@@ -105,6 +100,16 @@ export type Location = { 'None' : null } |
   { 'Digital' : string } |
   { 'Physical' : PhysicalLocation };
 export interface Manifest { 'entries' : Array<ChunkData> }
+export interface NeuronGated {
+  'governance_canister' : Principal,
+  'name' : string,
+  'description' : string,
+  'rules' : Array<NeuronGatedRules>,
+}
+export type NeuronGatedRules = { 'IsDisolving' : boolean } |
+  { 'MinStake' : bigint } |
+  { 'MinAge' : bigint } |
+  { 'MinDissolveDelay' : bigint };
 export interface PagedResponse {
   'total' : bigint,
   'data' : Array<GroupResponse>,
@@ -128,7 +133,7 @@ export interface PhysicalLocation {
   'address' : Address,
   'lattitude' : number,
 }
-export type Privacy = { 'Gated' : Array<Gated> } |
+export type Privacy = { 'Gated' : GatedType } |
   { 'Private' : null } |
   { 'Public' : null } |
   { 'InviteOnly' : null };
@@ -145,6 +150,13 @@ export interface ScalableCanisterDetails {
 }
 export type SortDirection = { 'Asc' : null } |
   { 'Desc' : null };
+export interface TokenGated {
+  'principal' : Principal,
+  'name' : string,
+  'description' : string,
+  'amount' : bigint,
+  'standard' : string,
+}
 export interface UpdateMessage {
   'canister_principal' : Principal,
   'message' : string,
@@ -157,7 +169,7 @@ export interface _SERVICE {
   '__get_candid_interface_tmp_hack' : ActorMethod<[], string>,
   'accept_cycles' : ActorMethod<[], bigint>,
   'close_child_canister_and_spawn_sibling' : ActorMethod<
-    [Principal, bigint, Uint8Array | number[], [] | [Principal]],
+    [bigint, Uint8Array | number[]],
     Result
   >,
   'get_available_canister' : ActorMethod<[], Result_1>,

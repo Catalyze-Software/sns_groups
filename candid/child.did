@@ -34,13 +34,7 @@ type ErrorMessage = record {
   location : text;
 };
 type FilterType = variant { Or; And };
-type Gated = record {
-  "principal" : principal;
-  name : text;
-  description : text;
-  amount : nat64;
-  standard : text;
-};
+type GatedType = variant { Neuron : vec NeuronGated; Token : vec TokenGated };
 type Group = record {
   updated_on : nat64;
   banner_image : Asset;
@@ -114,6 +108,18 @@ type HttpResponse = record {
 };
 type Location = variant { None; Digital : text; Physical : PhysicalLocation };
 type Manifest = record { entries : vec ChunkData };
+type NeuronGated = record {
+  governance_canister : principal;
+  name : text;
+  description : text;
+  rules : vec NeuronGatedRules;
+};
+type NeuronGatedRules = variant {
+  IsDisolving : bool;
+  MinStake : nat64;
+  MinAge : nat64;
+  MinDissolveDelay : nat64;
+};
 type PagedResponse = record {
   total : nat64;
   data : vec GroupResponse;
@@ -149,7 +155,7 @@ type PostGroup = record {
   location : Location;
 };
 type PostPermission = record { name : text; actions : PermissionActions };
-type Privacy = variant { Gated : vec Gated; Private; Public; InviteOnly };
+type Privacy = variant { Gated : GatedType; Private; Public; InviteOnly };
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : GroupResponse; Err : ApiError };
 type Result_2 = variant { Ok : GroupRole; Err : ApiError };
@@ -160,6 +166,13 @@ type Result_6 = variant { Ok : PagedResponse; Err : ApiError };
 type Result_7 = variant { Ok : vec GroupResponse; Err : ApiError };
 type Result_8 = variant { Ok; Err : bool };
 type SortDirection = variant { Asc; Desc };
+type TokenGated = record {
+  "principal" : principal;
+  name : text;
+  description : text;
+  amount : nat64;
+  standard : text;
+};
 type UpdateGroup = record {
   banner_image : Asset;
   name : text;
@@ -175,8 +188,8 @@ type ValidationResponse = record { field : text; message : text };
 service : (principal, text, nat64) -> {
   __get_candid_interface_tmp_hack : () -> (text) query;
   accept_cycles : () -> (nat64);
-  add_entry_by_parent : (opt principal, vec nat8) -> (Result);
-  add_group : (PostGroup, principal) -> (Result_1);
+  add_entry_by_parent : (vec nat8) -> (Result);
+  add_group : (PostGroup, principal, opt text) -> (Result_1);
   add_role : (principal, text, text, nat64, principal) -> (Result_2);
   delete_group : (principal, principal) -> (Result_3);
   edit_group : (principal, UpdateGroup, principal) -> (Result_1);

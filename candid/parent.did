@@ -41,13 +41,7 @@ type ErrorMessage = record {
   location : text;
 };
 type FilterType = variant { Or; And };
-type Gated = record {
-  "principal" : principal;
-  name : text;
-  description : text;
-  amount : nat64;
-  standard : text;
-};
+type GatedType = variant { Neuron : vec NeuronGated; Token : vec TokenGated };
 type GroupFilter = variant {
   Tag : nat32;
   UpdatedOn : DateRange;
@@ -103,6 +97,18 @@ type HttpResponse = record {
 };
 type Location = variant { None; Digital : text; Physical : PhysicalLocation };
 type Manifest = record { entries : vec ChunkData };
+type NeuronGated = record {
+  governance_canister : principal;
+  name : text;
+  description : text;
+  rules : vec NeuronGatedRules;
+};
+type NeuronGatedRules = variant {
+  IsDisolving : bool;
+  MinStake : nat64;
+  MinAge : nat64;
+  MinDissolveDelay : nat64;
+};
 type PagedResponse = record {
   total : nat64;
   data : vec GroupResponse;
@@ -126,7 +132,7 @@ type PhysicalLocation = record {
   address : Address;
   lattitude : float32;
 };
-type Privacy = variant { Gated : vec Gated; Private; Public; InviteOnly };
+type Privacy = variant { Gated : GatedType; Private; Public; InviteOnly };
 type Result = variant { Ok : principal; Err : ApiError };
 type Result_1 = variant { Ok : ScalableCanisterDetails; Err : text };
 type ScalableCanisterDetails = record {
@@ -137,18 +143,20 @@ type ScalableCanisterDetails = record {
   canister_type : CanisterType;
 };
 type SortDirection = variant { Asc; Desc };
+type TokenGated = record {
+  "principal" : principal;
+  name : text;
+  description : text;
+  amount : nat64;
+  standard : text;
+};
 type UpdateMessage = record { canister_principal : principal; message : text };
 type ValidationResponse = record { field : text; message : text };
 type WasmVersion = variant { None; Version : nat64; Custom };
-service : (principal) -> {
+service : () -> {
   __get_candid_interface_tmp_hack : () -> (text) query;
   accept_cycles : () -> (nat64);
-  close_child_canister_and_spawn_sibling : (
-      principal,
-      nat64,
-      vec nat8,
-      opt principal,
-    ) -> (Result);
+  close_child_canister_and_spawn_sibling : (nat64, vec nat8) -> (Result);
   get_available_canister : () -> (Result_1) query;
   get_canisters : () -> (vec ScalableCanisterDetails) query;
   get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort) -> (

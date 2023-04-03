@@ -20,8 +20,9 @@ use super::store::{Store, DATA};
 async fn add_group(
     post_group: PostGroup,
     member_canister: Principal,
+    account_identifier: Option<String>,
 ) -> Result<GroupResponse, ApiError> {
-    Store::add_group(caller(), post_group, member_canister).await
+    Store::add_group(caller(), post_group, member_canister, account_identifier).await
 }
 
 // This method is used to get a group from the canister

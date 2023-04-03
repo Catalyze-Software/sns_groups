@@ -85,15 +85,31 @@ export const idlFactory = ({ IDL }) => {
     'None' : IDL.Null,
     'CanisterStorage' : CanisterStorage,
   });
-  const Gated = IDL.Record({
+  const NeuronGatedRules = IDL.Variant({
+    'IsDisolving' : IDL.Bool,
+    'MinStake' : IDL.Nat64,
+    'MinAge' : IDL.Nat64,
+    'MinDissolveDelay' : IDL.Nat64,
+  });
+  const NeuronGated = IDL.Record({
+    'governance_canister' : IDL.Principal,
+    'name' : IDL.Text,
+    'description' : IDL.Text,
+    'rules' : IDL.Vec(NeuronGatedRules),
+  });
+  const TokenGated = IDL.Record({
     'principal' : IDL.Principal,
     'name' : IDL.Text,
     'description' : IDL.Text,
     'amount' : IDL.Nat64,
     'standard' : IDL.Text,
   });
+  const GatedType = IDL.Variant({
+    'Neuron' : IDL.Vec(NeuronGated),
+    'Token' : IDL.Vec(TokenGated),
+  });
   const Privacy = IDL.Variant({
-    'Gated' : IDL.Vec(Gated),
+    'Gated' : GatedType,
     'Private' : IDL.Null,
     'Public' : IDL.Null,
     'InviteOnly' : IDL.Null,
@@ -178,7 +194,7 @@ export const idlFactory = ({ IDL }) => {
     '__get_candid_interface_tmp_hack' : IDL.Func([], [IDL.Text], ['query']),
     'accept_cycles' : IDL.Func([], [IDL.Nat64], []),
     'close_child_canister_and_spawn_sibling' : IDL.Func(
-        [IDL.Principal, IDL.Nat64, IDL.Vec(IDL.Nat8), IDL.Opt(IDL.Principal)],
+        [IDL.Nat64, IDL.Vec(IDL.Nat8)],
         [Result],
         [],
       ),
@@ -197,4 +213,4 @@ export const idlFactory = ({ IDL }) => {
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
   });
 };
-export const init = ({ IDL }) => { return [IDL.Principal]; };
+export const init = ({ IDL }) => { return []; };
