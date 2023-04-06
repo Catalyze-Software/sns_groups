@@ -402,7 +402,8 @@ impl ScalableData {
         version: u64,
     ) -> Result<WasmDetails, String> {
         // Get the WASM from the file system
-        let bytes = include_bytes!("../../../wasm/child.wasm").to_vec();
+        // let bytes: Vec<u8> = vec![];
+        let bytes = include_bytes!("../../../wasm/child.wasm.gz").to_vec();
 
         // Check if the wasm bytes are empty
         if bytes.is_empty() {
@@ -415,24 +416,24 @@ impl ScalableData {
         }
 
         // If the wasm bytes are unique
-        if old_store.child_wasm_data.bytes != bytes {
-            match old_store.child_wasm_data.wasm_version {
-                WasmVersion::None => {}
-                WasmVersion::Version(_version) => {
-                    // Check if the version is incremented
-                    if version <= _version {
-                        return Err(format!(
-                            "Please provide a higher version as {_version}, skipping child WASM update"
-                        )
-                        .to_string());
-                    }
-                }
-                // If the WASM version is custom, throw an error
-                WasmVersion::Custom => {
-                    return Err("Wrong WASM version type, skipping child WASM update".to_string())
-                }
-            }
-        }
+        // if old_store.child_wasm_data.bytes != bytes {
+        //     match old_store.child_wasm_data.wasm_version {
+        //         WasmVersion::None => {}
+        //         WasmVersion::Version(_version) => {
+        //             // Check if the version is incremented
+        //             if version <= _version {
+        //                 return Err(format!(
+        //                     "Please provide a higher version as {_version}, skipping child WASM update"
+        //                 )
+        //                 .to_string());
+        //             }
+        //         }
+        //         // If the WASM version is custom, throw an error
+        //         WasmVersion::Custom => {
+        //             return Err("Wrong WASM version type, skipping child WASM update".to_string())
+        //         }
+        //     }
+        // }
 
         // Create the WASM details
         let details = WasmDetails {

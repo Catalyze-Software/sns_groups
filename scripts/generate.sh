@@ -1,8 +1,8 @@
 #!/bin/sh
 
 canisters=(
-    "parent"
     "child"
+    "parent"
 )
 
 echo -e "${GREEN}> $ENV: Generating required files..${NC}"
@@ -13,7 +13,8 @@ for t in ${canisters[@]}; do
     dfx build --network ic $t
 
     mkdir -p wasm
-    cp -r target/wasm32-unknown-unknown/release/$t-opt.wasm wasm/$t.wasm
+    cp -r target/wasm32-unknown-unknown/release/$t.wasm wasm/$t.wasm
+    gzip -c wasm/$t.wasm > wasm/$t.wasm.gz
 
     mkdir -p frontend/$t
     cp -r .dfx/ic/canisters/$t/$t.did.d.ts frontend/$t

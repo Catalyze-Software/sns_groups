@@ -18,7 +18,7 @@ pub fn pre_upgrade() {
 pub fn post_upgrade() {
     let (mut old_store,): (ScalableData,) = storage::stable_restore().unwrap();
     // Get the child wasm data from the old store
-    let child_wasm_data = ScalableData::get_child_wasm_data(&old_store, 0_0_2);
+    let child_wasm_data = ScalableData::get_child_wasm_data(&old_store, 0_0_14);
     match child_wasm_data {
         // If the child wasm data is found, update the data in the new store
         Ok(_child_wasm_data) => {

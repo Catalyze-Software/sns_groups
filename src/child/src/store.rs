@@ -690,7 +690,7 @@ impl Store {
                                 "NOT_OWNING_NEURON",
                                 "You are not owning this neuron required to join this group",
                                 DATA.with(|data| Data::get_name(data)).as_str(),
-                                "add_invite_or_join_group_to_member",
+                                "validate_group_privacy",
                                 None,
                             ));
                         }
@@ -781,9 +781,11 @@ impl Store {
 
         match call {
             Ok((neurons,)) => {
+                let mut is_valid: HashMap<Vec<u8>, bool> = HashMap::new();
                 // iterate over the neurons and check if the neuron applies to all the set rules
-                let mut is_valid = true;
                 for neuron in neurons.neurons {
+                    let neuron_id = neuron.id.unwrap().id;
+                    is_valid.insert(neuron_id.clone(), true);
                     for rule in rules.clone() {
                         match rule {
                             NeuronGatedRules::IsDisolving(_) => {
@@ -793,7 +795,7 @@ impl Store {
                                         match _state {
                                             // neuron is not in a dissolving state
                                             DissolveDelaySeconds(_time) => {
-                                                is_valid = false;
+                                                is_valid.insert(neuron_id, false);
                                                 break;
                                             }
                                             // means that the neuron is in a dissolving state
@@ -801,14 +803,14 @@ impl Store {
                                         }
                                     }
                                     None => {
-                                        is_valid = false;
+                                        is_valid.insert(neuron_id, false);
                                         break;
                                     }
                                 }
                             }
                             NeuronGatedRules::MinAge(_min_age_in_seconds) => {
                                 if neuron.created_timestamp_seconds < _min_age_in_seconds {
-                                    is_valid = false;
+                                    is_valid.insert(neuron_id, false);
                                     break;
                                 }
                             }
@@ -818,7 +820,7 @@ impl Store {
                                 let min_stake = _min_stake as f64 / 100_000_000.0;
 
                                 if neuron_stake.ceil() < min_stake.ceil() {
-                                    is_valid = false;
+                                    is_valid.insert(neuron_id, false);
                                     break;
                                 }
                             }
@@ -830,28 +832,22 @@ impl Store {
                                             // neuron is not in a dissolving state, time is locking period in seconds
                                             DissolveDelaySeconds(_dissolve_delay_in_seconds) => {
                                                 if &_min_dissolve_delay_in_seconds
-                                                    < _dissolve_delay_in_seconds
+                                                    > _dissolve_delay_in_seconds
                                                 {
-                                                    is_valid = false;
+                                                    is_valid.insert(neuron_id, false);
                                                     break;
                                                 }
                                             }
+                                            // if the neuron is dissolving, make invalid
                                             // means that the neuron is in a dissolving state, timestamp when neuron is done dissolving in seconds
-                                            WhenDissolvedTimestampSeconds(
-                                                _timestamp_in_seconds,
-                                            ) => {
-                                                let calculated_time = _timestamp_in_seconds
-                                                    - (time() / 1_000_000_000);
-                                                if _min_dissolve_delay_in_seconds < calculated_time
-                                                {
-                                                    is_valid = false;
-                                                    break;
-                                                }
+                                            WhenDissolvedTimestampSeconds(_) => {
+                                                is_valid.insert(neuron_id, false);
+                                                break;
                                             }
                                         }
                                     }
                                     None => {
-                                        is_valid = false;
+                                        is_valid.insert(neuron_id, false);
                                         break;
                                     }
                                 }
@@ -859,7 +855,7 @@ impl Store {
                         }
                     }
                 }
-                return is_valid;
+                return is_valid.iter().any(|v| v.1 == &true);
             }
             Err(_) => false,
         }

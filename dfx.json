@@ -1,24 +1,16 @@
 {
   "canisters": {
-    "parent": {
-      "build": [
-        "cargo build -q --target wasm32-unknown-unknown --package  parent --release",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/parent.wasm -o target/wasm32-unknown-unknown/release/parent-opt.wasm"
-      ],
-      "candid": "candid/parent.did",
-      "wasm": "target/wasm32-unknown-unknown/release/parent-opt.wasm",
-      "package": "parent",
-      "type": "custom"
-    },
     "child": {
-      "build": [
-        "cargo build -q --target wasm32-unknown-unknown --package  child --release",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/child.wasm -o target/wasm32-unknown-unknown/release/child-opt.wasm"
-      ],
-      "candid": "candid/child.did",
-      "wasm": "target/wasm32-unknown-unknown/release/child-opt.wasm",
+      "type": "rust",
       "package": "child",
-      "type": "custom"
+      "candid": "candid/child.did",
+      "wasm": "wasm/child.wasm.gz"
+    },
+    "parent": {
+      "type": "rust",
+      "package": "parent",
+      "candid": "candid/parent.did",
+      "wasm": "wasm/parent.wasm.gz"
     }
   }
 }

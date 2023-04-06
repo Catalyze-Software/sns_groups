@@ -208,6 +208,7 @@ service : (principal, text, nat64) -> {
     ) query;
   get_groups_by_id : (vec principal) -> (Result_7) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
+  migration_add_groups : (vec record { principal; Group }) -> ();
   remove_role : (principal, text, principal) -> (Result_4);
   update_member_count : (principal, principal, nat64) -> (Result_8);
 }

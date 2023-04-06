@@ -276,6 +276,11 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
+    'migration_add_groups' : IDL.Func(
+        [IDL.Vec(IDL.Tuple(IDL.Principal, Group))],
+        [],
+        [],
+      ),
     'remove_role' : IDL.Func(
         [IDL.Principal, IDL.Text, IDL.Principal],
         [Result_4],
