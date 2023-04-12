@@ -7,7 +7,7 @@ use ic_scalable_misc::{
     models::http_models::{HttpRequest, HttpResponse},
 };
 
-use crate::store::DATA;
+use crate::{store::DATA, IDENTIFIER_KIND};
 
 // Stores the data in stable storage before upgrading the canister.
 #[pre_upgrade]
@@ -26,7 +26,7 @@ pub fn post_upgrade() {
 #[update]
 #[candid_method(update)]
 async fn add_entry_by_parent(entry: Vec<u8>) -> Result<(), ApiError> {
-    DATA.with(|v| Data::add_entry_by_parent(v, caller(), entry, Some("grp".to_string())))
+    DATA.with(|v| Data::add_entry_by_parent(v, caller(), entry, Some(IDENTIFIER_KIND.to_string())))
 }
 
 // Method to accept cycles when send to this canister

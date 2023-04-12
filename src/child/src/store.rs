@@ -31,7 +31,7 @@ use ic_scalable_misc::{
 use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGroup, UpdateGroup};
 use std::cell::RefCell;
 
-use crate::validation::validate_post_group;
+use crate::{validation::validate_post_group, IDENTIFIER_KIND};
 
 use super::validation::validate_update_group;
 
@@ -86,7 +86,11 @@ impl Store {
 
                     // Add the group to the data store and pass in the "kind" as a third parameter to generate a identifier
                     Ok(_) => {
-                        match Data::add_entry(data, new_group.clone(), Some("grp".to_string())) {
+                        match Data::add_entry(
+                            data,
+                            new_group.clone(),
+                            Some(IDENTIFIER_KIND.to_string()),
+                        ) {
                             Err(err) => Err(err),
                             Ok(result) => Ok(result),
                         }
@@ -1133,7 +1137,7 @@ impl Store {
     ) -> Result<(), bool> {
         let (_, _, _group_kind) = Identifier::decode(&group_identifier);
 
-        if "grp" != _group_kind {
+        if IDENTIFIER_KIND != _group_kind {
             return Err(false);
         };
 

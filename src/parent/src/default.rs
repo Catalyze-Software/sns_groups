@@ -18,7 +18,13 @@ pub fn pre_upgrade() {
 pub fn post_upgrade() {
     let (mut old_store,): (ScalableData,) = storage::stable_restore().unwrap();
     // Get the child wasm data from the old store
-    let child_wasm_data = ScalableData::get_child_wasm_data(&old_store, 0_0_14);
+    use ic_scalable_misc::enums::wasm_version_type::WasmVersion::*;
+    let version = match old_store.child_wasm_data.wasm_version {
+        Version(_version) => _version + 1,
+        _ => 0,
+    };
+
+    let child_wasm_data = ScalableData::get_child_wasm_data(&old_store, version);
     match child_wasm_data {
         // If the child wasm data is found, update the data in the new store
         Ok(_child_wasm_data) => {

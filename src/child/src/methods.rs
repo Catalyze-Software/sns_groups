@@ -12,6 +12,8 @@ use ic_scalable_misc::{
 };
 use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGroup, UpdateGroup};
 
+use crate::IDENTIFIER_KIND;
+
 use super::store::{Store, DATA};
 
 #[update]
@@ -19,7 +21,7 @@ use super::store::{Store, DATA};
 pub fn migration_add_groups(groups: Vec<(Principal, Group)>) -> () {
     DATA.with(|data| {
         for group in groups {
-            let _ = Data::add_entry(data, group.1, Some("grp".to_string()));
+            let _ = Data::add_entry(data, group.1, Some(IDENTIFIER_KIND.to_string()));
         }
     })
 }
