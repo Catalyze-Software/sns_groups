@@ -3,6 +3,10 @@ use std::time::Duration;
 use candid::{candid_method, Principal};
 use ic_cdk::{caller, storage, timer::set_timer};
 use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query};
+use ic_scalable_misc::{
+    helpers::logger_helper::add_log,
+    models::logger_models::{LogType, PostLog},
+};
 
 use super::store::{ScalableData, DATA};
 
@@ -33,15 +37,29 @@ pub fn post_upgrade() {
                 *d.borrow_mut() = old_store;
             });
 
+            add_log(PostLog {
+                log_type: LogType::Info,
+                description: "canister children upgrading".to_string(),
+                source: "post_upgrade".to_string(),
+                data: "".to_string(),
+            });
+
             // Use a timer to trigger the upgrade_children method to upgrade the child WASMs
             set_timer(Duration::from_secs(0), || {
                 ic_cdk::spawn(ScalableData::upgrade_children());
             });
         }
         // If the child wasm data is not found, continue restoring the old store
-        Err(_) => {
+        Err(err) => {
             DATA.with(|d| {
                 *d.borrow_mut() = old_store;
+            });
+
+            add_log(PostLog {
+                log_type: LogType::Info,
+                description: "No child upgrade needed".to_string(),
+                source: "post_upgrade".to_string(),
+                data: format!("Error: {}", err),
             });
         }
     }

@@ -17,11 +17,14 @@ use ic_scalable_misc::{
     helpers::{
         canister_helper::{Canister, CanisterID, CanisterSettings, InstallCodeMode},
         error_helper::api_error,
+        logger_helper::add_log,
         paging_helper::get_paged_data,
         serialize_helper::deserialize,
     },
     models::{
-        canister_models::ScalableCanisterDetails, paged_response_models::PagedResponse,
+        canister_models::ScalableCanisterDetails,
+        logger_models::{LogType, PostLog},
+        paged_response_models::PagedResponse,
         wasm_models::WasmDetails,
     },
 };
@@ -389,8 +392,18 @@ impl ScalableData {
         for child in data.canisters {
             if child.1.wasm_version != data.child_wasm_data.wasm_version {
                 match ScalableData::upgrade_child_canister(child.0.clone()).await {
-                    Ok(_) => ic_cdk::println!("Installed"),
-                    Err(err) => ic_cdk::println!("Install error: {:?}", err),
+                    Ok(_details) => add_log(PostLog {
+                        log_type: LogType::Info,
+                        description: "Group child canister successfully upgraded".to_string(),
+                        source: "upgrade_children".to_string(),
+                        data: format!("{:?}", _details),
+                    }),
+                    Err(err) => add_log(PostLog {
+                        log_type: LogType::Error,
+                        description: "Group child canister not upgraded".to_string(),
+                        source: "upgrade_children".to_string(),
+                        data: format!("{:?}", err),
+                    }),
                 };
             }
         }

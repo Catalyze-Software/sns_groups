@@ -1,8 +1,9 @@
+use std::{collections::HashMap, iter::FromIterator};
+
 use candid::{candid_method, Principal};
 use ic_cdk::caller;
 use ic_cdk_macros::{query, update};
 
-use ic_scalable_canister::store::Data;
 use ic_scalable_misc::{
     enums::{api_error_type::ApiError, filter_type::FilterType, privacy_type::Privacy},
     models::{
@@ -12,17 +13,13 @@ use ic_scalable_misc::{
 };
 use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGroup, UpdateGroup};
 
-use crate::IDENTIFIER_KIND;
-
 use super::store::{Store, DATA};
 
 #[update]
 #[candid_method(update)]
 pub fn migration_add_groups(groups: Vec<(Principal, Group)>) -> () {
     DATA.with(|data| {
-        for group in groups {
-            let _ = Data::add_entry(data, group.1, Some(IDENTIFIER_KIND.to_string()));
-        }
+        data.borrow_mut().entries = HashMap::from_iter(groups);
     })
 }
 
