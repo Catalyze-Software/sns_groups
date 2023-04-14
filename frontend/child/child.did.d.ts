@@ -117,6 +117,7 @@ export interface NeuronGated {
   'governance_canister' : Principal,
   'name' : string,
   'description' : string,
+  'ledger_canister' : Principal,
   'rules' : Array<NeuronGatedRules>,
 }
 export type NeuronGatedRules = { 'IsDisolving' : boolean } |

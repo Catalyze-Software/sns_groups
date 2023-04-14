@@ -703,9 +703,9 @@ dependencies = [
 
 [[package]]
 name = "ic_scalable_misc"
-version = "0.2.46"
+version = "0.2.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72adc0315fc82b1fc13457594e4efcf3857b97f84b8fe68ecdff583b9b727e0c"
+checksum = "9d3abd78fc2ab1feb141d4d895ef0c58c6a8fc458e75de095285f6a108b2621b"
 dependencies = [
  "base64",
  "bincode",

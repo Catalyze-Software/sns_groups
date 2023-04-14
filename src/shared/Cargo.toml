@@ -11,5 +11,5 @@ crate-type = ["lib"]
 
 [dependencies]
 candid = "0.8.2"
-ic_scalable_misc = "0.2.44"
+ic_scalable_misc = "0.2.47"
 serde = "1.0"

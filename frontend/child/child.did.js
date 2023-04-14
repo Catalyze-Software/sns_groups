@@ -51,6 +51,7 @@ export const idlFactory = ({ IDL }) => {
     'governance_canister' : IDL.Principal,
     'name' : IDL.Text,
     'description' : IDL.Text,
+    'ledger_canister' : IDL.Principal,
     'rules' : IDL.Vec(NeuronGatedRules),
   });
   const TokenGated = IDL.Record({

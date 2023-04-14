@@ -17,9 +17,8 @@ for t in ${canisters[@]}; do
     gzip -c wasm/$t.wasm > wasm/$t.wasm.gz
 
     mkdir -p frontend/$t
-    cp -r .dfx/ic/canisters/$t/$t.did.d.ts frontend/$t
-    cp -r .dfx/ic/canisters/$t/$t.did.js frontend/$t
-    cp -r .dfx/ic/canisters/$t/index.js frontend/$t
+    cp -a src/declarations/$t frontend
+    rm -rf src/declarations
 done
 
 echo -e "${GREEN} $ENV > Stopping local replica..${NC}"

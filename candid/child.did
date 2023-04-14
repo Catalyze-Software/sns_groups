@@ -112,6 +112,7 @@ type NeuronGated = record {
   governance_canister : principal;
   name : text;
   description : text;
+  ledger_canister : principal;
   rules : vec NeuronGatedRules;
 };
 type NeuronGatedRules = variant {
