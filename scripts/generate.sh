@@ -6,7 +6,8 @@ canisters=(
 )
 
 echo -e "${GREEN}> $ENV: Generating required files..${NC}"
-cargo test --test generate -q
+cargo test --test generate
+dfx generate --network ic
 
 for t in ${canisters[@]}; do
     echo -e "${GREEN} $ENV > Building $t..${NC}"
@@ -18,7 +19,7 @@ for t in ${canisters[@]}; do
 
     mkdir -p frontend/$t
     cp -a src/declarations/$t frontend
-    rm -rf src/declarations
 done
 
+rm -rf src/declarations
 echo -e "${GREEN} $ENV > Stopping local replica..${NC}"
