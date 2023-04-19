@@ -688,9 +688,9 @@ checksum = "978b91fc78de9d2eb0144db717839cde3b35470199ea51aca362cb6310e93dfd"
 
 [[package]]
 name = "ic_scalable_canister"
-version = "0.2.72"
+version = "0.2.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7a530ebf34fb0ab9504973d5342aa908c28e601bdfd5429357d3765b43d0b48"
+checksum = "e24ab6a5994c702b112afe922ef79837c37e65a2b75843e210e29989648953f3"
 dependencies = [
  "candid",
  "ic-cdk",
