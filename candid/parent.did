@@ -95,8 +95,14 @@ type HttpResponse = record {
   body : vec nat8;
   headers : vec HttpHeader;
 };
-type Location = variant { None; Digital : text; Physical : PhysicalLocation };
+type Location = variant {
+  None;
+  Digital : text;
+  Physical : PhysicalLocation;
+  MultiLocation : MultiLocation;
+};
 type Manifest = record { entries : vec ChunkData };
+type MultiLocation = record { physical : PhysicalLocation; digital : text };
 type NeuronGated = record {
   governance_canister : principal;
   name : text;

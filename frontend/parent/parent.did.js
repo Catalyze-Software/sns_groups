@@ -130,10 +130,15 @@ export const idlFactory = ({ IDL }) => {
     'address' : Address,
     'lattitude' : IDL.Float32,
   });
+  const MultiLocation = IDL.Record({
+    'physical' : PhysicalLocation,
+    'digital' : IDL.Text,
+  });
   const Location = IDL.Variant({
     'None' : IDL.Null,
     'Digital' : IDL.Text,
     'Physical' : PhysicalLocation,
+    'MultiLocation' : MultiLocation,
   });
   const PermissionActions = IDL.Record({
     'edit' : IDL.Bool,
