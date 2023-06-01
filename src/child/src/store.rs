@@ -252,6 +252,7 @@ impl Store {
         filters: Vec<GroupFilter>,
         filter_type: FilterType,
         sort: GroupSort,
+        include_invite_only: bool,
     ) -> PagedResponse<GroupResponse> {
         let groups = DATA.with(|data| Data::get_entries(data));
         // Get groups for filtering and sorting
@@ -259,6 +260,13 @@ impl Store {
             .iter()
             // Filter out deleted groups
             .filter(|(_identifier, _group_data)| !_group_data.is_deleted)
+            .filter(|(_identifier, _group_data)| {
+                if include_invite_only {
+                    true
+                } else {
+                    _group_data.privacy != Privacy::InviteOnly
+                }
+            })
             // Map groups to group response
             .map(|(_identifier, _group_data)| {
                 Self::map_group_to_group_response(_identifier.clone(), _group_data.clone())
@@ -1074,6 +1082,7 @@ impl Store {
                         }
                     }
                 }
+
                 hashmap_groups.into_iter().map(|v| v.1).collect()
             }
         }

@@ -236,7 +236,7 @@ export interface _SERVICE {
   'get_group_owner_and_privacy' : ActorMethod<[Principal], Result_5>,
   'get_group_roles' : ActorMethod<[Principal], Array<GroupRole>>,
   'get_groups' : ActorMethod<
-    [bigint, bigint, Array<GroupFilter>, FilterType, GroupSort],
+    [bigint, bigint, Array<GroupFilter>, FilterType, GroupSort, boolean],
     Result_6
   >,
   'get_groups_by_id' : ActorMethod<[Array<Principal>], Result_7>,

@@ -25,6 +25,7 @@ export const idlFactory = ({ IDL }) => {
     'BadRequest' : ErrorMessage,
   });
   const Result = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : ApiError });
+  const Result_1 = IDL.Variant({ 'Ok' : IDL.Principal, 'Err' : IDL.Text });
   const WasmVersion = IDL.Variant({
     'None' : IDL.Null,
     'Version' : IDL.Nat64,
@@ -44,7 +45,7 @@ export const idlFactory = ({ IDL }) => {
     'is_available' : IDL.Bool,
     'canister_type' : CanisterType,
   });
-  const Result_1 = IDL.Variant({
+  const Result_2 = IDL.Variant({
     'Ok' : ScalableCanisterDetails,
     'Err' : IDL.Text,
   });
@@ -204,7 +205,17 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
-    'get_available_canister' : IDL.Func([], [Result_1], ['query']),
+    'decode_identifier' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Nat64, IDL.Text, IDL.Text],
+        ['query'],
+      ),
+    'encode_identifier' : IDL.Func(
+        [IDL.Nat64, IDL.Principal, IDL.Text],
+        [Result_1],
+        ['query'],
+      ),
+    'get_available_canister' : IDL.Func([], [Result_2], ['query']),
     'get_canisters' : IDL.Func(
         [],
         [IDL.Vec(ScalableCanisterDetails)],

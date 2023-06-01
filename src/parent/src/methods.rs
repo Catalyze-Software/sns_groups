@@ -1,7 +1,8 @@
-use candid::candid_method;
+use candid::{candid_method, Principal};
 use ic_cdk::query;
 use ic_scalable_misc::{
-    enums::filter_type::FilterType, models::paged_response_models::PagedResponse,
+    enums::filter_type::FilterType,
+    models::{identifier_model::Identifier, paged_response_models::PagedResponse},
 };
 
 use shared::group_model::{GroupFilter, GroupResponse, GroupSort};
@@ -20,4 +21,18 @@ async fn get_groups(
     sort: GroupSort,
 ) -> PagedResponse<GroupResponse> {
     ScalableData::get_child_canister_data(limit, page, filters, filter_type, sort).await
+}
+
+#[query]
+#[candid_method(query)]
+fn decode_identifier(identifier: Principal) -> (u64, String, String) {
+    let (_id, _canister, _kind) = Identifier::decode(&identifier);
+    (_id, _canister.to_string(), _kind)
+}
+
+#[query]
+#[candid_method(query)]
+fn encode_identifier(id: u64, principal: Principal, kind: String) -> Result<Principal, String> {
+    let identifier = Identifier::new(id, principal, kind);
+    identifier.unwrap().encode()
 }

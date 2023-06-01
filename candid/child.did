@@ -210,7 +210,7 @@ service : (principal, text, nat64) -> {
   get_group : (principal) -> (Result_1) query;
   get_group_owner_and_privacy : (principal) -> (Result_5) query;
   get_group_roles : (principal) -> (vec GroupRole) query;
-  get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort) -> (
+  get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort, bool) -> (
       Result_6,
     ) query;
   get_groups_by_id : (vec principal) -> (Result_7) query;

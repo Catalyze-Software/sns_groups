@@ -18,9 +18,14 @@ use super::store::{Store, DATA};
 #[update]
 #[candid_method(update)]
 pub fn migration_add_groups(groups: Vec<(Principal, Group)>) -> () {
-    DATA.with(|data| {
-        data.borrow_mut().entries = HashMap::from_iter(groups);
-    })
+    if caller()
+        == Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
+            .unwrap()
+    {
+        DATA.with(|data| {
+            data.borrow_mut().entries = HashMap::from_iter(groups);
+        })
+    }
 }
 
 // This method is used to add a group to the canister,
@@ -51,8 +56,16 @@ fn get_groups(
     filters: Vec<GroupFilter>,
     filter_type: FilterType,
     sort: GroupSort,
+    include_invite_only: bool,
 ) -> Result<PagedResponse<GroupResponse>, ApiError> {
-    Ok(Store::get_groups(limit, page, filters, filter_type, sort))
+    Ok(Store::get_groups(
+        limit,
+        page,
+        filters,
+        filter_type,
+        sort,
+        include_invite_only,
+    ))
 }
 
 // This method is used to edit a group

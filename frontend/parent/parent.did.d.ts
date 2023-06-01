@@ -145,7 +145,9 @@ export type Privacy = { 'Gated' : GatedType } |
   { 'InviteOnly' : null };
 export type Result = { 'Ok' : Principal } |
   { 'Err' : ApiError };
-export type Result_1 = { 'Ok' : ScalableCanisterDetails } |
+export type Result_1 = { 'Ok' : Principal } |
+  { 'Err' : string };
+export type Result_2 = { 'Ok' : ScalableCanisterDetails } |
   { 'Err' : string };
 export interface ScalableCanisterDetails {
   'entry_range' : [bigint, [] | [bigint]],
@@ -178,7 +180,9 @@ export interface _SERVICE {
     [bigint, Uint8Array | number[]],
     Result
   >,
-  'get_available_canister' : ActorMethod<[], Result_1>,
+  'decode_identifier' : ActorMethod<[Principal], [bigint, string, string]>,
+  'encode_identifier' : ActorMethod<[bigint, Principal, string], Result_1>,
+  'get_available_canister' : ActorMethod<[], Result_2>,
   'get_canisters' : ActorMethod<[], Array<ScalableCanisterDetails>>,
   'get_groups' : ActorMethod<
     [bigint, bigint, Array<GroupFilter>, FilterType, GroupSort],

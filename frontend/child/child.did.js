@@ -272,7 +272,14 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'get_groups' : IDL.Func(
-        [IDL.Nat64, IDL.Nat64, IDL.Vec(GroupFilter), FilterType, GroupSort],
+        [
+          IDL.Nat64,
+          IDL.Nat64,
+          IDL.Vec(GroupFilter),
+          FilterType,
+          GroupSort,
+          IDL.Bool,
+        ],
         [Result_6],
         ['query'],
       ),
