@@ -507,10 +507,7 @@ impl Store {
                     ));
                 }
                 // check if the role exists
-                let existing_role = _group_data
-                    .roles
-                    .iter()
-                    .find(|r| r.name == role_name && r.protected);
+                let existing_role = _group_data.roles.iter().find(|r| r.name == role_name);
 
                 match existing_role {
                     None => Err(api_error(
