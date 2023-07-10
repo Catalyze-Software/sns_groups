@@ -1,13 +1,13 @@
 {
   "canisters": {
     "child": {
-      "type": "custom",
+      "type": "rust",
       "package": "child",
       "candid": "candid/child.did",
       "wasm": "wasm/child.wasm.gz"
     },
     "parent": {
-      "type": "custom",
+      "type": "rust",
       "package": "parent",
       "candid": "candid/parent.did",
       "wasm": "wasm/parent.wasm.gz"
