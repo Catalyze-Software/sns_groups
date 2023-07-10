@@ -69,6 +69,7 @@ impl Store {
             is_deleted: false,
             updated_on: time(),
             created_on: time(),
+            wallets: HashMap::new(),
         };
 
         let add_entry_result = match Self::validate_group_privacy(
@@ -231,6 +232,87 @@ impl Store {
             Err(err) => Err(err),
             Ok((_identifier, _group_data)) => {
                 Ok(Self::map_group_to_group_response(_identifier, _group_data))
+            }
+        })
+    }
+
+    pub fn add_wallet(
+        caller: Principal,
+        group_identifier: Principal,
+        wallet_canister: Principal,
+        description: String,
+    ) -> Result<(), ApiError> {
+        let inputs = Some(vec![
+            format!("caller - {:?}", &caller),
+            format!("group_identifier - {:?}", &group_identifier),
+            format!("wallet_canister - {:?}", &wallet_canister),
+            format!("description - {:?}", &description),
+        ]);
+        DATA.with(|data| match Data::get_entry(data, group_identifier) {
+            Err(err) => Err(err),
+            Ok((_identifier, mut _group_data)) => {
+                if _group_data.owner != caller {
+                    return Err(api_error(
+                        ApiErrorType::Unauthorized,
+                        "CANT_ADD_WALLET",
+                        "Only the owner can add a wallet",
+                        Data::get_name(data).as_str(),
+                        "add_wallet",
+                        inputs,
+                    ));
+                }
+
+                _group_data.wallets.insert(wallet_canister, description);
+                _group_data.updated_on = time();
+
+                let update_group_result =
+                    Data::update_entry(data, _identifier, _group_data.clone());
+
+                match update_group_result {
+                    Err(err) => Err(err),
+                    Ok(_) => Ok(()),
+                }
+            }
+        })
+    }
+
+    pub fn remove_wallet(
+        caller: Principal,
+        group_identifier: Principal,
+        wallet_canister: Principal,
+    ) -> Result<(), ApiError> {
+        let inputs = Some(vec![
+            format!("caller - {:?}", &caller),
+            format!("group_identifier - {:?}", &group_identifier),
+            format!("wallet_canister - {:?}", &wallet_canister),
+        ]);
+        DATA.with(|data| {
+            // Check if the group exists in the data store
+            match Data::get_entry(data, group_identifier) {
+                Err(err) => Err(err),
+                Ok((_identifier, mut _group_data)) => {
+                    if _group_data.owner != caller {
+                        return Err(api_error(
+                            ApiErrorType::Unauthorized,
+                            "CANT_DELETE_WALLET",
+                            "Only the owner can delete a wallet",
+                            Data::get_name(data).as_str(),
+                            "remove_wallet",
+                            inputs,
+                        ));
+                    }
+
+                    _group_data.wallets.remove(&wallet_canister);
+                    _group_data.updated_on = time();
+
+                    let update_group_result =
+                        Data::update_entry(data, _identifier, _group_data.clone());
+
+                    match update_group_result {
+                        Err(err) => Err(err),
+                        Ok(_) => Ok(()),
+                    }
+                }
             }
         })
     }

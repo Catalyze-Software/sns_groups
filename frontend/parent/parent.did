@@ -21,6 +21,13 @@ type ApiError = variant {
 };
 type Asset = variant { Url : text; None; CanisterStorage : CanisterStorage };
 type CanisterStorage = variant { None; Manifest : Manifest; Chunk : ChunkData };
+type CanisterType = variant {
+  Empty;
+  Foundation;
+  Custom;
+  ScalableChild;
+  Scalable;
+};
 type ChunkData = record {
   chunk_id : nat64;
   canister : principal;
@@ -35,25 +42,6 @@ type ErrorMessage = record {
 };
 type FilterType = variant { Or; And };
 type GatedType = variant { Neuron : vec NeuronGated; Token : vec TokenGated };
-type Group = record {
-  updated_on : nat64;
-  banner_image : Asset;
-  owner : principal;
-  name : text;
-  matrix_space_id : text;
-  tags : vec nat32;
-  description : text;
-  created_by : principal;
-  created_on : nat64;
-  website : text;
-  privacy : Privacy;
-  wallets : vec record { principal; text };
-  image : Asset;
-  member_count : vec record { principal; nat64 };
-  location : Location;
-  roles : vec GroupRole;
-  is_deleted : bool;
-};
 type GroupFilter = variant {
   Tag : nat32;
   UpdatedOn : DateRange;
@@ -151,28 +139,17 @@ type PhysicalLocation = record {
   address : Address;
   lattitude : float32;
 };
-type PostGroup = record {
-  banner_image : Asset;
-  name : text;
-  matrix_space_id : text;
-  tags : vec nat32;
-  description : text;
-  website : text;
-  privacy : Privacy;
-  image : Asset;
-  location : Location;
-};
-type PostPermission = record { name : text; actions : PermissionActions };
 type Privacy = variant { Gated : GatedType; Private; Public; InviteOnly };
-type Result = variant { Ok; Err : ApiError };
-type Result_1 = variant { Ok : GroupResponse; Err : ApiError };
-type Result_2 = variant { Ok : GroupRole; Err : ApiError };
-type Result_3 = variant { Ok : Group; Err : ApiError };
-type Result_4 = variant { Ok : bool; Err : ApiError };
-type Result_5 = variant { Ok : record { principal; Privacy }; Err : ApiError };
-type Result_6 = variant { Ok : PagedResponse; Err : ApiError };
-type Result_7 = variant { Ok : vec GroupResponse; Err : ApiError };
-type Result_8 = variant { Ok; Err : bool };
+type Result = variant { Ok : principal; Err : ApiError };
+type Result_1 = variant { Ok : principal; Err : text };
+type Result_2 = variant { Ok : ScalableCanisterDetails; Err : text };
+type ScalableCanisterDetails = record {
+  entry_range : record { nat64; opt nat64 };
+  "principal" : principal;
+  wasm_version : WasmVersion;
+  is_available : bool;
+  canister_type : CanisterType;
+};
 type SortDirection = variant { Asc; Desc };
 type TokenGated = record {
   "principal" : principal;
@@ -181,42 +158,20 @@ type TokenGated = record {
   amount : nat64;
   standard : text;
 };
-type UpdateGroup = record {
-  banner_image : Asset;
-  name : text;
-  tags : vec nat32;
-  description : text;
-  website : text;
-  privacy : Privacy;
-  image : Asset;
-  location : Location;
-};
 type UpdateMessage = record { canister_principal : principal; message : text };
 type ValidationResponse = record { field : text; message : text };
-service : (principal, text, nat64) -> {
+type WasmVersion = variant { None; Version : nat64; Custom };
+service : () -> {
   __get_candid_interface_tmp_hack : () -> (text) query;
   accept_cycles : () -> (nat64);
-  add_entry_by_parent : (vec nat8) -> (Result);
-  add_group : (PostGroup, principal, opt text) -> (Result_1);
-  add_role : (principal, text, text, nat64, principal) -> (Result_2);
-  delete_group : (principal, principal) -> (Result_3);
-  edit_group : (principal, UpdateGroup, principal) -> (Result_1);
-  edit_role_permissions : (principal, text, vec PostPermission, principal) -> (
-      Result_4,
-    );
-  get_chunked_data : (vec GroupFilter, FilterType, nat64, nat64) -> (
-      vec nat8,
-      record { nat64; nat64 },
+  close_child_canister_and_spawn_sibling : (nat64, vec nat8) -> (Result);
+  decode_identifier : (principal) -> (nat64, text, text) query;
+  encode_identifier : (nat64, principal, text) -> (Result_1) query;
+  get_available_canister : () -> (Result_2) query;
+  get_canisters : () -> (vec ScalableCanisterDetails) query;
+  get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort) -> (
+      PagedResponse,
     ) query;
-  get_group : (principal) -> (Result_1) query;
-  get_group_owner_and_privacy : (principal) -> (Result_5) query;
-  get_group_roles : (principal) -> (vec GroupRole) query;
-  get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort, bool) -> (
-      Result_6,
-    ) query;
-  get_groups_by_id : (vec principal) -> (Result_7) query;
+  get_latest_wasm_version : () -> (WasmVersion) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
-  migration_add_groups : (vec record { principal; Group }) -> ();
-  remove_role : (principal, text, principal) -> (Result_4);
-  update_member_count : (principal, principal, nat64) -> (Result_8);
 }

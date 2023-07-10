@@ -54,6 +54,7 @@ export interface Group {
   'created_on' : bigint,
   'website' : string,
   'privacy' : Privacy,
+  'wallets' : Array<[Principal, string]>,
   'image' : Asset,
   'member_count' : Array<[Principal, bigint]>,
   'location' : Location,

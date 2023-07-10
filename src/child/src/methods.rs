@@ -23,6 +23,7 @@ pub fn migration_add_groups(groups: Vec<(Principal, Group)>) -> () {
             .unwrap()
     {
         DATA.with(|data| {
+            data.borrow_mut().current_entry_id = groups.clone().len() as u64;
             data.borrow_mut().entries = HashMap::from_iter(groups);
         })
     }
@@ -129,6 +130,21 @@ async fn delete_group(
         Ok(_caller) => Store::delete_group(_caller, group_identifier),
         Err(err) => Err(err),
     }
+}
+
+pub fn add_wallet(
+    group_identifier: Principal,
+    wallet_canister: Principal,
+    description: String,
+) -> Result<(), ApiError> {
+    Store::add_wallet(caller(), group_identifier, wallet_canister, description)
+}
+
+pub fn remove_wallet(
+    group_identifier: Principal,
+    wallet_canister: Principal,
+) -> Result<(), ApiError> {
+    Store::remove_wallet(caller(), group_identifier, wallet_canister)
 }
 
 // This method is used to add a custom role to a group

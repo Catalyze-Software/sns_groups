@@ -25,6 +25,7 @@ pub struct Group {
     pub roles: Vec<GroupRole>,
     pub is_deleted: bool,
     pub member_count: HashMap<Principal, usize>,
+    pub wallets: HashMap<Principal, String>,
     pub updated_on: u64,
     pub created_on: u64,
 }
@@ -44,6 +45,7 @@ impl Default for Group {
             banner_image: Default::default(),
             tags: Default::default(),
             member_count: Default::default(),
+            wallets: Default::default(),
             roles: Vec::default(),
             is_deleted: Default::default(),
             updated_on: Default::default(),
