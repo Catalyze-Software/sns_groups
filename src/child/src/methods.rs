@@ -7,7 +7,7 @@ use ic_cdk_macros::{query, update};
 use ic_scalable_misc::{
     enums::{api_error_type::ApiError, filter_type::FilterType, privacy_type::Privacy},
     models::{
-        group_role::GroupRole, paged_response_models::PagedResponse,
+        group_role::GroupRole, identifier_model::Identifier, paged_response_models::PagedResponse,
         permissions_models::PostPermission,
     },
 };
@@ -132,6 +132,8 @@ async fn delete_group(
     }
 }
 
+#[update]
+#[candid_method(update)]
 pub fn add_wallet(
     group_identifier: Principal,
     wallet_canister: Principal,
@@ -140,6 +142,8 @@ pub fn add_wallet(
     Store::add_wallet(caller(), group_identifier, wallet_canister, description)
 }
 
+#[update]
+#[candid_method(update)]
 pub fn remove_wallet(
     group_identifier: Principal,
     wallet_canister: Principal,
@@ -212,6 +216,13 @@ pub fn update_member_count(
     member_count: usize,
 ) -> Result<(), bool> {
     let _caller = caller();
+
+    let (_, _, kind) = Identifier::decode(&member_canister);
+
+    if kind != "mbr" {
+        return Err(false);
+    }
+
     if _caller == member_canister {
         return Store::update_member_count(group_identifier, member_canister, member_count);
     }
