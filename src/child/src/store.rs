@@ -1011,6 +1011,12 @@ impl Store {
         filters: Vec<GroupFilter>,
         filter_type: FilterType,
     ) -> Vec<GroupResponse> {
+        if let FilterType::Or = filter_type {
+            if filters.len() == 0 {
+                return groups;
+            }
+        }
+
         match filter_type {
             // this filter type will return groups that match all the filters
             FilterType::And => {
