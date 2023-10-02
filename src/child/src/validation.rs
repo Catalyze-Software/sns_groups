@@ -13,7 +13,7 @@ pub fn validate_post_group(post_group: PostGroup) -> Result<(), ApiError> {
             "name".to_string(),
         ),
         ValidateField(
-            ValidationType::StringLength(post_group.description, 0, 1000),
+            ValidationType::StringLength(post_group.description, 0, 2500),
             "description".to_string(),
         ),
         ValidateField(
@@ -36,7 +36,7 @@ pub fn validate_update_group(update_group: UpdateGroup) -> Result<(), ApiError> 
             "name".to_string(),
         ),
         ValidateField(
-            ValidationType::StringLength(update_group.description, 0, 1000),
+            ValidationType::StringLength(update_group.description, 0, 2500),
             "description".to_string(),
         ),
         ValidateField(
