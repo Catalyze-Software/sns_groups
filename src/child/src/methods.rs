@@ -7,7 +7,7 @@ use ic_cdk_macros::{query, update};
 use ic_scalable_misc::{
     enums::{api_error_type::ApiError, filter_type::FilterType, privacy_type::Privacy},
     models::{
-        group_role::GroupRole, identifier_model::Identifier, paged_response_models::PagedResponse,
+        group_role::GroupRole, paged_response_models::PagedResponse,
         permissions_models::PostPermission,
     },
 };
