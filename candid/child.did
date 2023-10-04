@@ -26,6 +26,15 @@ type ChunkData = record {
   canister : principal;
   index : nat64;
 };
+type Data = record {
+  updated_at : nat64;
+  name : text;
+  current_entry_id : nat64;
+  created_at : nat64;
+  is_available : bool;
+  identifier : nat64;
+  parent : principal;
+};
 type DateRange = record { end_date : nat64; start_date : nat64 };
 type ErrorMessage = record {
   tag : text;
@@ -167,12 +176,13 @@ type Privacy = variant { Gated : GatedType; Private; Public; InviteOnly };
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : GroupResponse; Err : ApiError };
 type Result_2 = variant { Ok : GroupRole; Err : ApiError };
-type Result_3 = variant { Ok : Group; Err : ApiError };
-type Result_4 = variant { Ok : bool; Err : ApiError };
-type Result_5 = variant { Ok : record { principal; Privacy }; Err : ApiError };
-type Result_6 = variant { Ok : PagedResponse; Err : ApiError };
-type Result_7 = variant { Ok : vec GroupResponse; Err : ApiError };
-type Result_8 = variant { Ok; Err : bool };
+type Result_3 = variant { Ok; Err : text };
+type Result_4 = variant { Ok : Group; Err : ApiError };
+type Result_5 = variant { Ok : bool; Err : ApiError };
+type Result_6 = variant { Ok : record { principal; Privacy }; Err : ApiError };
+type Result_7 = variant { Ok : PagedResponse; Err : ApiError };
+type Result_8 = variant { Ok : vec GroupResponse; Err : ApiError };
+type Result_9 = variant { Ok; Err : bool };
 type SortDirection = variant { Asc; Desc };
 type TokenGated = record {
   "principal" : principal;
@@ -200,25 +210,28 @@ service : (principal, text, nat64) -> {
   add_group : (PostGroup, principal, opt text) -> (Result_1);
   add_role : (principal, text, text, nat64, principal) -> (Result_2);
   add_wallet : (principal, principal, text) -> (Result);
-  delete_group : (principal, principal) -> (Result_3);
+  check_stable_data : () -> (Data) query;
+  check_stable_entries : () -> (nat64) query;
+  clear_entries : () -> (Result_3);
+  delete_group : (principal, principal) -> (Result_4);
   edit_group : (principal, UpdateGroup, principal) -> (Result_1);
   edit_role_permissions : (principal, text, vec PostPermission, principal) -> (
-      Result_4,
+      Result_5,
     );
   get_chunked_data : (vec GroupFilter, FilterType, nat64, nat64) -> (
       vec nat8,
       record { nat64; nat64 },
     ) query;
   get_group : (principal) -> (Result_1) query;
-  get_group_owner_and_privacy : (principal) -> (Result_5) query;
+  get_group_owner_and_privacy : (principal) -> (Result_6) query;
   get_group_roles : (principal) -> (vec GroupRole) query;
   get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort, bool) -> (
-      Result_6,
+      Result_7,
     ) query;
-  get_groups_by_id : (vec principal) -> (Result_7) query;
+  get_groups_by_id : (vec principal) -> (Result_8) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
-  migration_add_groups : (vec record { principal; Group }) -> ();
-  remove_role : (principal, text, principal) -> (Result_4);
+  migration_add_groups : () -> (Result_3);
+  remove_role : (principal, text, principal) -> (Result_5);
   remove_wallet : (principal, principal) -> (Result);
-  update_member_count : (principal, principal, nat64) -> (Result_8);
+  update_member_count : (principal, principal, nat64) -> (Result_9);
 }

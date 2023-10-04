@@ -1,6 +1,5 @@
-use candid::{candid_method, Principal};
-use ic_cdk::caller;
-use ic_cdk_macros::{query, update};
+use candid::Principal;
+use ic_cdk::{caller, query, update};
 use ic_scalable_misc::{
     enums::{api_error_type::ApiError, wasm_version_type::WasmVersion},
     helpers::{
@@ -17,14 +16,12 @@ use super::store::{ScalableData, DATA};
 
 // Method to retrieve an available canister to write updated to
 #[query]
-#[candid_method(query)]
 fn get_available_canister() -> Result<ScalableCanisterDetails, String> {
     ScalableData::get_available_canister(caller())
 }
 
 // Methods to retrieve all the canisters
 #[query]
-#[candid_method(query)]
 fn get_canisters() -> Vec<ScalableCanisterDetails> {
     ScalableData::get_canisters()
 }
@@ -32,7 +29,6 @@ fn get_canisters() -> Vec<ScalableCanisterDetails> {
 // Method called by child canister once full (inter-canister call)
 // can only be called by a child canister
 #[update]
-#[candid_method(update)]
 async fn close_child_canister_and_spawn_sibling(
     last_entry_id: u64,
     entry: Vec<u8>,
@@ -42,7 +38,6 @@ async fn close_child_canister_and_spawn_sibling(
 
 // Method to retrieve the latest wasm version of the child canister that is currently stored
 #[query]
-#[candid_method(query)]
 fn get_latest_wasm_version() -> WasmVersion {
     DATA.with(|v| v.borrow().child_wasm_data.wasm_version.clone())
 }
@@ -50,7 +45,6 @@ fn get_latest_wasm_version() -> WasmVersion {
 // HTTP request handler
 // canister metrics are added to the response
 #[query]
-#[candid_method(query)]
 fn http_request(req: HttpRequest) -> HttpResponse {
     let path_entries = vec![PathEntry {
         match_path: vec!["metrics".to_string()],
@@ -69,7 +63,6 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 
 // Method to accept cycles when send to this canister
 #[update]
-#[candid_method(update)]
 fn accept_cycles() -> u64 {
     Canister::accept_cycles()
 }

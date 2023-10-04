@@ -1,11 +1,16 @@
-use std::{collections::HashMap, iter::FromIterator};
+use std::collections::HashMap;
 
-use candid::{candid_method, Principal};
-use ic_cdk::caller;
-use ic_cdk_macros::{query, update};
+use candid::Principal;
+use ic_cdk::{
+    api::call::{self, RejectionCode},
+    caller, query, update,
+};
 
 use ic_scalable_misc::{
-    enums::{api_error_type::ApiError, filter_type::FilterType, privacy_type::Privacy},
+    enums::{
+        api_error_type::ApiError, filter_type::FilterType, privacy_type::Privacy,
+        sort_type::SortDirection,
+    },
     models::{
         group_role::GroupRole, paged_response_models::PagedResponse,
         permissions_models::PostPermission,
@@ -13,26 +18,110 @@ use ic_scalable_misc::{
 };
 use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGroup, UpdateGroup};
 
+use crate::store::ENTRIES;
+
 use super::store::{Store, DATA};
 
 #[update]
-#[candid_method(update)]
-pub fn migration_add_groups(groups: Vec<(Principal, Group)>) -> () {
+pub async fn clear_entries() -> Result<(), String> {
     if caller()
-        == Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
+        != Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
             .unwrap()
     {
-        DATA.with(|data| {
-            data.borrow_mut().current_entry_id = groups.clone().len() as u64;
-            data.borrow_mut().entries = HashMap::from_iter(groups);
-        })
+        return Err("Unauthorized".to_string());
+    }
+
+    return Ok(());
+}
+
+#[update]
+pub async fn migration_add_groups() -> Result<(), String> {
+    if caller()
+        != Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
+            .unwrap()
+    {
+        return Err("Unauthorized".to_string());
+    }
+    let result: Result<(Result<PagedResponse<GroupResponse>, ApiError>,), (RejectionCode, String)> =
+        call::call(
+            Principal::from_text("5rvte-7aaaa-aaaap-aa4ja-cai").unwrap(),
+            "get_groups",
+            (
+                1000 as u64,
+                1 as u64,
+                Vec::<GroupFilter>::new(),
+                FilterType::And,
+                GroupSort::Name(SortDirection::Asc),
+                false,
+            ),
+        )
+        .await;
+
+    match result {
+        Err((_, err)) => {
+            return Err(err);
+        }
+        Ok((Err(err),)) => {
+            return Err(err.to_string());
+        }
+        Ok((Ok(groups),)) => {
+            ENTRIES.with(|data| {
+                // data.borrow_mut().entries = HashMap::from_iter(groups);
+                groups.data.into_iter().for_each(|g| {
+                    data.borrow_mut().insert(
+                        g.identifier.to_string(),
+                        Group {
+                            name: g.name,
+                            description: g.description,
+                            website: g.website,
+                            location: g.location,
+                            privacy: g.privacy,
+                            owner: g.owner,
+                            created_by: g.created_by,
+                            matrix_space_id: g.matrix_space_id,
+                            image: g.image,
+                            banner_image: g.banner_image,
+                            tags: g.tags,
+                            roles: g.roles,
+                            is_deleted: g.is_deleted,
+                            member_count: HashMap::new(),
+                            wallets: HashMap::new(),
+                            updated_on: g.updated_on,
+                            created_on: g.created_on,
+                        },
+                    );
+                });
+            });
+            Ok(())
+        }
     }
 }
+
+// #[update]
+// pub fn migration_add_groups(groups: Vec<(Principal, Group)>) -> () {
+//     if caller()
+//         == Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
+//             .unwrap()
+//     {
+//         DATA.with(|data| {
+//             let _ = data.borrow_mut().set(Data {
+//                 current_entry_id: groups.clone().len() as u64,
+//                 ..data.borrow().get().clone()
+//             });
+//         });
+
+//         ENTRIES.with(|data| {
+//             // data.borrow_mut().entries = HashMap::from_iter(groups);
+//             groups.into_iter().for_each(|(k, v)| {
+//                 data.borrow_mut().insert(k.to_string(), v);
+//             });
+//         });
+//     }
+// }
 
 // This method is used to add a group to the canister,
 // The method is async because it optionally creates a new canister is created
 #[update]
-#[candid_method(update)]
 async fn add_group(
     post_group: PostGroup,
     member_canister: Principal,
@@ -43,14 +132,12 @@ async fn add_group(
 
 // This method is used to get a group from the canister
 #[query]
-#[candid_method(query)]
 fn get_group(identifier: Principal) -> Result<GroupResponse, ApiError> {
     Store::get_group(identifier)
 }
 
 // This method is used to get groups filtered and sorted with pagination
 #[query]
-#[candid_method(query)]
 fn get_groups(
     limit: usize,
     page: usize,
@@ -71,7 +158,6 @@ fn get_groups(
 
 // This method is used to edit a group
 #[update]
-#[candid_method(update)]
 async fn edit_group(
     group_identifier: Principal,
     update_group: UpdateGroup,
@@ -88,14 +174,13 @@ async fn edit_group(
 // Data serialized and send as byte array chunks ` (bytes, (start_chunk, end_chunk)) `
 // The parent canister can then deserialize the data and pass it to the frontend
 #[query]
-#[candid_method(query)]
 fn get_chunked_data(
     filters: Vec<GroupFilter>,
     filter_type: FilterType,
     chunk: usize,
     max_bytes_per_chunk: usize,
 ) -> (Vec<u8>, (usize, usize)) {
-    if caller() != DATA.with(|data| data.borrow().parent) {
+    if DATA.with(|data| data.borrow().get().parent != caller()) {
         return (vec![], (0, 0));
     }
 
@@ -105,7 +190,6 @@ fn get_chunked_data(
 // This method is used to get the owner and privacy of a group
 // This is used for inter-canister calls to determine is a user can do a group specific action
 #[query]
-#[candid_method(query)]
 fn get_group_owner_and_privacy(
     group_identifier: Principal,
 ) -> Result<(Principal, Privacy), ApiError> {
@@ -114,14 +198,12 @@ fn get_group_owner_and_privacy(
 
 // Get multiple groups by their identifiers
 #[query]
-#[candid_method(query)]
 fn get_groups_by_id(group_identifiers: Vec<Principal>) -> Result<Vec<GroupResponse>, ApiError> {
     Ok(Store::get_groups_by_id(group_identifiers))
 }
 
 // This method is used to (soft) delete a group
 #[update]
-#[candid_method(update)]
 async fn delete_group(
     group_identifier: Principal,
     member_identifier: Principal,
@@ -133,7 +215,6 @@ async fn delete_group(
 }
 
 #[update]
-#[candid_method(update)]
 pub fn add_wallet(
     group_identifier: Principal,
     wallet_canister: Principal,
@@ -143,7 +224,6 @@ pub fn add_wallet(
 }
 
 #[update]
-#[candid_method(update)]
 pub fn remove_wallet(
     group_identifier: Principal,
     wallet_canister: Principal,
@@ -153,7 +233,6 @@ pub fn remove_wallet(
 
 // This method is used to add a custom role to a group
 #[update]
-#[candid_method(update)]
 async fn add_role(
     group_identifier: Principal,
     role_name: String,
@@ -169,7 +248,6 @@ async fn add_role(
 
 // This method is used to remove a custom role from a group
 #[update]
-#[candid_method(update)]
 async fn remove_role(
     group_identifier: Principal,
     role_name: String,
@@ -183,14 +261,12 @@ async fn remove_role(
 
 // This method is used to get all the roles of a group
 #[query]
-#[candid_method(query)]
 fn get_group_roles(group_identifier: Principal) -> Vec<GroupRole> {
     Store::get_group_roles(group_identifier)
 }
 
 // This method is used to update the persmissions of a specific role
 #[update]
-#[candid_method(update)]
 async fn edit_role_permissions(
     group_identifier: Principal,
     role_name: String,
@@ -209,7 +285,6 @@ async fn edit_role_permissions(
 // Member count is used for backend filtering
 // TODO: distinct member_canister and caller
 #[update]
-#[candid_method(update)]
 pub fn update_member_count(
     group_identifier: Principal,
     member_canister: Principal,

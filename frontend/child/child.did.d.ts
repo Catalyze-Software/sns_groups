@@ -31,6 +31,15 @@ export interface ChunkData {
   'canister' : Principal,
   'index' : bigint,
 }
+export interface Data {
+  'updated_at' : bigint,
+  'name' : string,
+  'current_entry_id' : bigint,
+  'created_at' : bigint,
+  'is_available' : boolean,
+  'identifier' : bigint,
+  'parent' : Principal,
+}
 export interface DateRange { 'end_date' : bigint, 'start_date' : bigint }
 export interface ErrorMessage {
   'tag' : string,
@@ -178,17 +187,19 @@ export type Result_1 = { 'Ok' : GroupResponse } |
   { 'Err' : ApiError };
 export type Result_2 = { 'Ok' : GroupRole } |
   { 'Err' : ApiError };
-export type Result_3 = { 'Ok' : Group } |
+export type Result_3 = { 'Ok' : null } |
+  { 'Err' : string };
+export type Result_4 = { 'Ok' : Group } |
   { 'Err' : ApiError };
-export type Result_4 = { 'Ok' : boolean } |
+export type Result_5 = { 'Ok' : boolean } |
   { 'Err' : ApiError };
-export type Result_5 = { 'Ok' : [Principal, Privacy] } |
+export type Result_6 = { 'Ok' : [Principal, Privacy] } |
   { 'Err' : ApiError };
-export type Result_6 = { 'Ok' : PagedResponse } |
+export type Result_7 = { 'Ok' : PagedResponse } |
   { 'Err' : ApiError };
-export type Result_7 = { 'Ok' : Array<GroupResponse> } |
+export type Result_8 = { 'Ok' : Array<GroupResponse> } |
   { 'Err' : ApiError };
-export type Result_8 = { 'Ok' : null } |
+export type Result_9 = { 'Ok' : null } |
   { 'Err' : boolean };
 export type SortDirection = { 'Asc' : null } |
   { 'Desc' : null };
@@ -224,27 +235,30 @@ export interface _SERVICE {
     Result_2
   >,
   'add_wallet' : ActorMethod<[Principal, Principal, string], Result>,
-  'delete_group' : ActorMethod<[Principal, Principal], Result_3>,
+  'check_stable_data' : ActorMethod<[], Data>,
+  'check_stable_entries' : ActorMethod<[], bigint>,
+  'clear_entries' : ActorMethod<[], Result_3>,
+  'delete_group' : ActorMethod<[Principal, Principal], Result_4>,
   'edit_group' : ActorMethod<[Principal, UpdateGroup, Principal], Result_1>,
   'edit_role_permissions' : ActorMethod<
     [Principal, string, Array<PostPermission>, Principal],
-    Result_4
+    Result_5
   >,
   'get_chunked_data' : ActorMethod<
     [Array<GroupFilter>, FilterType, bigint, bigint],
     [Uint8Array | number[], [bigint, bigint]]
   >,
   'get_group' : ActorMethod<[Principal], Result_1>,
-  'get_group_owner_and_privacy' : ActorMethod<[Principal], Result_5>,
+  'get_group_owner_and_privacy' : ActorMethod<[Principal], Result_6>,
   'get_group_roles' : ActorMethod<[Principal], Array<GroupRole>>,
   'get_groups' : ActorMethod<
     [bigint, bigint, Array<GroupFilter>, FilterType, GroupSort, boolean],
-    Result_6
+    Result_7
   >,
-  'get_groups_by_id' : ActorMethod<[Array<Principal>], Result_7>,
+  'get_groups_by_id' : ActorMethod<[Array<Principal>], Result_8>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
-  'migration_add_groups' : ActorMethod<[Array<[Principal, Group]>], undefined>,
-  'remove_role' : ActorMethod<[Principal, string, Principal], Result_4>,
+  'migration_add_groups' : ActorMethod<[], Result_3>,
+  'remove_role' : ActorMethod<[Principal, string, Principal], Result_5>,
   'remove_wallet' : ActorMethod<[Principal, Principal], Result>,
-  'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_8>,
+  'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_9>,
 }

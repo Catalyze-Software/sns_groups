@@ -146,6 +146,16 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_1 = IDL.Variant({ 'Ok' : GroupResponse, 'Err' : ApiError });
   const Result_2 = IDL.Variant({ 'Ok' : GroupRole, 'Err' : ApiError });
+  const Data = IDL.Record({
+    'updated_at' : IDL.Nat64,
+    'name' : IDL.Text,
+    'current_entry_id' : IDL.Nat64,
+    'created_at' : IDL.Nat64,
+    'is_available' : IDL.Bool,
+    'identifier' : IDL.Nat64,
+    'parent' : IDL.Principal,
+  });
+  const Result_3 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
   const Group = IDL.Record({
     'updated_on' : IDL.Nat64,
     'banner_image' : Asset,
@@ -165,7 +175,7 @@ export const idlFactory = ({ IDL }) => {
     'roles' : IDL.Vec(GroupRole),
     'is_deleted' : IDL.Bool,
   });
-  const Result_3 = IDL.Variant({ 'Ok' : Group, 'Err' : ApiError });
+  const Result_4 = IDL.Variant({ 'Ok' : Group, 'Err' : ApiError });
   const UpdateGroup = IDL.Record({
     'banner_image' : Asset,
     'name' : IDL.Text,
@@ -180,7 +190,7 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'actions' : PermissionActions,
   });
-  const Result_4 = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ApiError });
+  const Result_5 = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ApiError });
   const DateRange = IDL.Record({
     'end_date' : IDL.Nat64,
     'start_date' : IDL.Nat64,
@@ -195,7 +205,7 @@ export const idlFactory = ({ IDL }) => {
     'CreatedOn' : DateRange,
   });
   const FilterType = IDL.Variant({ 'Or' : IDL.Null, 'And' : IDL.Null });
-  const Result_5 = IDL.Variant({
+  const Result_6 = IDL.Variant({
     'Ok' : IDL.Tuple(IDL.Principal, Privacy),
     'Err' : ApiError,
   });
@@ -213,8 +223,8 @@ export const idlFactory = ({ IDL }) => {
     'limit' : IDL.Nat64,
     'number_of_pages' : IDL.Nat64,
   });
-  const Result_6 = IDL.Variant({ 'Ok' : PagedResponse, 'Err' : ApiError });
-  const Result_7 = IDL.Variant({
+  const Result_7 = IDL.Variant({ 'Ok' : PagedResponse, 'Err' : ApiError });
+  const Result_8 = IDL.Variant({
     'Ok' : IDL.Vec(GroupResponse),
     'Err' : ApiError,
   });
@@ -230,7 +240,7 @@ export const idlFactory = ({ IDL }) => {
     'body' : IDL.Vec(IDL.Nat8),
     'headers' : IDL.Vec(HttpHeader),
   });
-  const Result_8 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Bool });
+  const Result_9 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Bool });
   return IDL.Service({
     '__get_candid_interface_tmp_hack' : IDL.Func([], [IDL.Text], ['query']),
     'accept_cycles' : IDL.Func([], [IDL.Nat64], []),
@@ -250,7 +260,10 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
-    'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_3], []),
+    'check_stable_data' : IDL.Func([], [Data], ['query']),
+    'check_stable_entries' : IDL.Func([], [IDL.Nat64], ['query']),
+    'clear_entries' : IDL.Func([], [Result_3], []),
+    'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_4], []),
     'edit_group' : IDL.Func(
         [IDL.Principal, UpdateGroup, IDL.Principal],
         [Result_1],
@@ -258,7 +271,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'edit_role_permissions' : IDL.Func(
         [IDL.Principal, IDL.Text, IDL.Vec(PostPermission), IDL.Principal],
-        [Result_4],
+        [Result_5],
         [],
       ),
     'get_chunked_data' : IDL.Func(
@@ -269,7 +282,7 @@ export const idlFactory = ({ IDL }) => {
     'get_group' : IDL.Func([IDL.Principal], [Result_1], ['query']),
     'get_group_owner_and_privacy' : IDL.Func(
         [IDL.Principal],
-        [Result_5],
+        [Result_6],
         ['query'],
       ),
     'get_group_roles' : IDL.Func(
@@ -286,29 +299,25 @@ export const idlFactory = ({ IDL }) => {
           GroupSort,
           IDL.Bool,
         ],
-        [Result_6],
+        [Result_7],
         ['query'],
       ),
     'get_groups_by_id' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
-        [Result_7],
+        [Result_8],
         ['query'],
       ),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
-    'migration_add_groups' : IDL.Func(
-        [IDL.Vec(IDL.Tuple(IDL.Principal, Group))],
-        [],
-        [],
-      ),
+    'migration_add_groups' : IDL.Func([], [Result_3], []),
     'remove_role' : IDL.Func(
         [IDL.Principal, IDL.Text, IDL.Principal],
-        [Result_4],
+        [Result_5],
         [],
       ),
     'remove_wallet' : IDL.Func([IDL.Principal, IDL.Principal], [Result], []),
     'update_member_count' : IDL.Func(
         [IDL.Principal, IDL.Principal, IDL.Nat64],
-        [Result_8],
+        [Result_9],
         [],
       ),
   });
