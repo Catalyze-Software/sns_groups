@@ -1,12 +1,12 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use candid::{CandidType, Decode, Deserialize, Encode, Principal};
-use ic_scalable_canister::store::ObjectType;
 use ic_scalable_misc::{
     enums::{
         asset_type::Asset, location_type::Location, privacy_type::Privacy, sort_type::SortDirection,
     },
     models::{date_models::DateRange, group_role::GroupRole},
+    traits::stable_storage_trait::StableStorableTrait,
 };
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::Serialize;
@@ -32,7 +32,7 @@ pub struct Group {
     pub created_on: u64,
 }
 
-impl ObjectType for Group {}
+impl StableStorableTrait for Group {}
 
 impl Storable for Group {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {

@@ -187,18 +187,18 @@ export type Result_1 = { 'Ok' : GroupResponse } |
   { 'Err' : ApiError };
 export type Result_2 = { 'Ok' : GroupRole } |
   { 'Err' : ApiError };
-export type Result_3 = { 'Ok' : null } |
+export type Result_3 = { 'Ok' : Group } |
+  { 'Err' : ApiError };
+export type Result_4 = { 'Ok' : boolean } |
+  { 'Err' : ApiError };
+export type Result_5 = { 'Ok' : [Principal, Privacy] } |
+  { 'Err' : ApiError };
+export type Result_6 = { 'Ok' : PagedResponse } |
+  { 'Err' : ApiError };
+export type Result_7 = { 'Ok' : Array<GroupResponse> } |
+  { 'Err' : ApiError };
+export type Result_8 = { 'Ok' : null } |
   { 'Err' : string };
-export type Result_4 = { 'Ok' : Group } |
-  { 'Err' : ApiError };
-export type Result_5 = { 'Ok' : boolean } |
-  { 'Err' : ApiError };
-export type Result_6 = { 'Ok' : [Principal, Privacy] } |
-  { 'Err' : ApiError };
-export type Result_7 = { 'Ok' : PagedResponse } |
-  { 'Err' : ApiError };
-export type Result_8 = { 'Ok' : Array<GroupResponse> } |
-  { 'Err' : ApiError };
 export type Result_9 = { 'Ok' : null } |
   { 'Err' : boolean };
 export type SortDirection = { 'Asc' : null } |
@@ -237,28 +237,28 @@ export interface _SERVICE {
   'add_wallet' : ActorMethod<[Principal, Principal, string], Result>,
   'check_stable_data' : ActorMethod<[], Data>,
   'check_stable_entries' : ActorMethod<[], bigint>,
-  'clear_entries' : ActorMethod<[], Result_3>,
-  'delete_group' : ActorMethod<[Principal, Principal], Result_4>,
+  'delete_group' : ActorMethod<[Principal, Principal], Result_3>,
   'edit_group' : ActorMethod<[Principal, UpdateGroup, Principal], Result_1>,
   'edit_role_permissions' : ActorMethod<
     [Principal, string, Array<PostPermission>, Principal],
-    Result_5
+    Result_4
   >,
   'get_chunked_data' : ActorMethod<
     [Array<GroupFilter>, FilterType, bigint, bigint],
     [Uint8Array | number[], [bigint, bigint]]
   >,
   'get_group' : ActorMethod<[Principal], Result_1>,
-  'get_group_owner_and_privacy' : ActorMethod<[Principal], Result_6>,
+  'get_group_owner_and_privacy' : ActorMethod<[Principal], Result_5>,
   'get_group_roles' : ActorMethod<[Principal], Array<GroupRole>>,
   'get_groups' : ActorMethod<
     [bigint, bigint, Array<GroupFilter>, FilterType, GroupSort, boolean],
-    Result_7
+    Result_6
   >,
-  'get_groups_by_id' : ActorMethod<[Array<Principal>], Result_8>,
+  'get_groups_by_id' : ActorMethod<[Array<Principal>], Result_7>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
-  'migration_add_groups' : ActorMethod<[], Result_3>,
-  'remove_role' : ActorMethod<[Principal, string, Principal], Result_5>,
+  'migration_add_groups' : ActorMethod<[], Result_8>,
+  'remove_role' : ActorMethod<[Principal, string, Principal], Result_4>,
   'remove_wallet' : ActorMethod<[Principal, Principal], Result>,
+  'set_entry_count' : ActorMethod<[], Result_8>,
   'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_9>,
 }

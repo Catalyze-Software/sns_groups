@@ -176,12 +176,12 @@ type Privacy = variant { Gated : GatedType; Private; Public; InviteOnly };
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : GroupResponse; Err : ApiError };
 type Result_2 = variant { Ok : GroupRole; Err : ApiError };
-type Result_3 = variant { Ok; Err : text };
-type Result_4 = variant { Ok : Group; Err : ApiError };
-type Result_5 = variant { Ok : bool; Err : ApiError };
-type Result_6 = variant { Ok : record { principal; Privacy }; Err : ApiError };
-type Result_7 = variant { Ok : PagedResponse; Err : ApiError };
-type Result_8 = variant { Ok : vec GroupResponse; Err : ApiError };
+type Result_3 = variant { Ok : Group; Err : ApiError };
+type Result_4 = variant { Ok : bool; Err : ApiError };
+type Result_5 = variant { Ok : record { principal; Privacy }; Err : ApiError };
+type Result_6 = variant { Ok : PagedResponse; Err : ApiError };
+type Result_7 = variant { Ok : vec GroupResponse; Err : ApiError };
+type Result_8 = variant { Ok; Err : text };
 type Result_9 = variant { Ok; Err : bool };
 type SortDirection = variant { Asc; Desc };
 type TokenGated = record {
@@ -212,26 +212,26 @@ service : (principal, text, nat64) -> {
   add_wallet : (principal, principal, text) -> (Result);
   check_stable_data : () -> (Data) query;
   check_stable_entries : () -> (nat64) query;
-  clear_entries : () -> (Result_3);
-  delete_group : (principal, principal) -> (Result_4);
+  delete_group : (principal, principal) -> (Result_3);
   edit_group : (principal, UpdateGroup, principal) -> (Result_1);
   edit_role_permissions : (principal, text, vec PostPermission, principal) -> (
-      Result_5,
+      Result_4,
     );
   get_chunked_data : (vec GroupFilter, FilterType, nat64, nat64) -> (
       vec nat8,
       record { nat64; nat64 },
     ) query;
   get_group : (principal) -> (Result_1) query;
-  get_group_owner_and_privacy : (principal) -> (Result_6) query;
+  get_group_owner_and_privacy : (principal) -> (Result_5) query;
   get_group_roles : (principal) -> (vec GroupRole) query;
   get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort, bool) -> (
-      Result_7,
+      Result_6,
     ) query;
-  get_groups_by_id : (vec principal) -> (Result_8) query;
+  get_groups_by_id : (vec principal) -> (Result_7) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
-  migration_add_groups : () -> (Result_3);
-  remove_role : (principal, text, principal) -> (Result_5);
+  migration_add_groups : () -> (Result_8);
+  remove_role : (principal, text, principal) -> (Result_4);
   remove_wallet : (principal, principal) -> (Result);
+  set_entry_count : () -> (Result_8);
   update_member_count : (principal, principal, nat64) -> (Result_9);
 }

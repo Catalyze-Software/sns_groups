@@ -55,7 +55,7 @@ thread_local! {
 
     pub static ENTRIES: RefCell<StableBTreeMap<String, Group, Memory>> = RefCell::new(
         StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2))),
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(4))),
         )
     );
 }

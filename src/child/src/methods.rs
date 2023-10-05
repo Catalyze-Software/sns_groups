@@ -23,12 +23,16 @@ use crate::store::ENTRIES;
 use super::store::{Store, DATA};
 
 #[update]
-pub async fn clear_entries() -> Result<(), String> {
+pub async fn set_entry_count() -> Result<(), String> {
     if caller()
-        != Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
+        == Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
             .unwrap()
     {
-        return Err("Unauthorized".to_string());
+        DATA.with(|d| {
+            let mut old_data = d.borrow().get().clone();
+            old_data.current_entry_id = 1000;
+            let _ = d.borrow_mut().set(old_data);
+        })
     }
 
     return Ok(());

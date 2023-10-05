@@ -600,9 +600,9 @@ checksum = "16efdbe5d9b0ea368da50aedbf7640a054139569236f1a5249deb5fd9af5a5d5"
 
 [[package]]
 name = "ic_scalable_canister"
-version = "0.3.0-beta.4"
+version = "0.3.0-beta.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adf273ed2b97654bff68227f783a45c50a29e3271ca7e77cf400af8deb5da9a1"
+checksum = "1995cd291e3225febb4b95b6704c9d823614e6e651697705fa25dc3fc385f65f"
 dependencies = [
  "candid",
  "ic-cdk 0.11.0",
@@ -615,9 +615,9 @@ dependencies = [
 
 [[package]]
 name = "ic_scalable_misc"
-version = "1.0.0"
+version = "1.0.1-beta.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "571c0eae25f97c2e8092d087252488f105fcae2310db491bd4b53c28b469a772"
+checksum = "26431479d8d28e868af599c263c31d9507ae5d9368fd3f3eff272ac16b4dc8cf"
 dependencies = [
  "base64",
  "bincode",
@@ -626,6 +626,7 @@ dependencies = [
  "email_address",
  "ic-cdk 0.11.0",
  "ic-cdk-timers",
+ "ic-stable-structures",
  "serde",
  "serde-encrypt",
  "serde_cbor",
@@ -1048,7 +1049,6 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "ic-stable-structures",
- "ic_scalable_canister",
  "ic_scalable_misc",
  "serde",
 ]
