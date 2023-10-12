@@ -137,6 +137,7 @@ export const idlFactory = ({ IDL }) => {
     'created_on' : IDL.Nat64,
     'website' : IDL.Text,
     'privacy' : Privacy,
+    'wallets' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Text)),
     'image' : Asset,
     'identifier' : IDL.Principal,
     'member_count' : IDL.Nat64,
@@ -307,6 +308,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
+    'migrate_to_stable' : IDL.Func([], [], []),
     'migration_add_groups' : IDL.Func([], [Result_8], []),
     'remove_role' : IDL.Func(
         [IDL.Principal, IDL.Text, IDL.Principal],

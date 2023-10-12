@@ -20,7 +20,7 @@ use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGrou
 
 use crate::store::ENTRIES;
 
-use super::store::{Store, DATA};
+use super::store::{Store, STABLE_DATA};
 
 #[update]
 pub async fn set_entry_count() -> Result<(), String> {
@@ -28,7 +28,7 @@ pub async fn set_entry_count() -> Result<(), String> {
         == Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
             .unwrap()
     {
-        DATA.with(|d| {
+        STABLE_DATA.with(|d| {
             let mut old_data = d.borrow().get().clone();
             old_data.current_entry_id = 1000;
             let _ = d.borrow_mut().set(old_data);
@@ -184,7 +184,7 @@ fn get_chunked_data(
     chunk: usize,
     max_bytes_per_chunk: usize,
 ) -> (Vec<u8>, (usize, usize)) {
-    if DATA.with(|data| data.borrow().get().parent != caller()) {
+    if STABLE_DATA.with(|data| data.borrow().get().parent != caller()) {
         return (vec![], (0, 0));
     }
 

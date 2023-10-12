@@ -107,6 +107,7 @@ pub struct GroupResponse {
     pub owner: Principal,
     pub matrix_space_id: String,
     pub image: Asset,
+    pub wallets: Vec<(Principal, String)>,
     pub banner_image: Asset,
     pub tags: Vec<u32>,
     pub roles: Vec<GroupRole>,

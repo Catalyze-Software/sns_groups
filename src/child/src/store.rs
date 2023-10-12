@@ -46,7 +46,7 @@ thread_local! {
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 
     // NEW STABLE
-    pub static DATA: RefCell<StableCell<Data, Memory>> = RefCell::new(
+    pub static STABLE_DATA: RefCell<StableCell<Data, Memory>> = RefCell::new(
         StableCell::init(
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))),
             Data::default(),
@@ -58,6 +58,8 @@ thread_local! {
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(4))),
         )
     );
+
+    pub static DATA: RefCell<ic_scalable_misc::models::original_data::Data<Group>> = RefCell::new(ic_scalable_misc::models::original_data::Data::default());
 }
 
 pub struct Store;
@@ -102,7 +104,7 @@ impl Store {
         {
             Err(err) => Err(err),
             Ok(_) => {
-                DATA.with(|data| match validate_post_group(post_group) {
+                STABLE_DATA.with(|data| match validate_post_group(post_group) {
                     // Return an error if the group data is invalid
                     Err(err) => Err(err),
 
@@ -123,7 +125,7 @@ impl Store {
         };
 
         // Check if the group was added to the data store successfully
-        let _data = DATA.with(|v| v.borrow().get().clone());
+        let _data = STABLE_DATA.with(|v| v.borrow().get().clone());
         match add_entry_result {
             // The group was not added to the data store because the canister is at capacity
             Err(err) => match err {
@@ -169,7 +171,7 @@ impl Store {
         ]);
 
         // Validate the "update_group" data
-        DATA.with(|data| match validate_update_group(update_group.clone()) {
+        STABLE_DATA.with(|data| match validate_update_group(update_group.clone()) {
             Err(err) => Err(err),
             Ok(_) => {
                 // Check if the group exists in the data store
@@ -223,7 +225,7 @@ impl Store {
             format!("caller - {:?}", &caller),
             format!("id - {:?}", &identifier),
         ]);
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             // Check if the group exists in the data store
             match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
                 Err(err) => Err(err),
@@ -258,15 +260,15 @@ impl Store {
 
     // Method to get a group with an identifier from the data store
     pub fn get_group(identifier: Principal) -> Result<GroupResponse, ApiError> {
-        DATA.with(
-            |data| match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
+        STABLE_DATA.with(|data| {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
                 Err(err) => Err(err),
                 Ok((_identifier, _group_data)) => Ok(Self::map_group_to_group_response(
                     _identifier.to_string(),
                     _group_data,
                 )),
-            },
-        )
+            }
+        })
     }
 
     pub fn add_wallet(
@@ -281,7 +283,7 @@ impl Store {
             format!("wallet_canister - {:?}", &wallet_canister),
             format!("description - {:?}", &description),
         ]);
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
                 Err(err) => Err(err),
                 Ok((_identifier, mut _group_data)) => {
@@ -322,7 +324,7 @@ impl Store {
             format!("group_identifier - {:?}", &group_identifier),
             format!("wallet_canister - {:?}", &wallet_canister),
         ]);
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             // Check if the group exists in the data store
             match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
                 Err(err) => Err(err),
@@ -358,12 +360,12 @@ impl Store {
     pub fn get_group_owner_and_privacy(
         identifier: Principal,
     ) -> Result<(Principal, Privacy), ApiError> {
-        DATA.with(
-            |data| match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
+        STABLE_DATA.with(|data| {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
                 Err(err) => Err(err),
                 Ok((_, _group_data)) => Ok((_group_data.owner, _group_data.privacy)),
-            },
-        )
+            }
+        })
     }
 
     // This method is used to get groups filtered and sorted with pagination
@@ -459,7 +461,7 @@ impl Store {
 
     // Method to get multiple groups with an identifier from the data store
     pub fn get_groups_by_id(group_ids: Vec<Principal>) -> Vec<GroupResponse> {
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             let mut groups: Vec<GroupResponse> = vec![];
 
             // Loop over the group ids and get the group data
@@ -498,7 +500,7 @@ impl Store {
         ]);
 
         // get the group data
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
                 Err(err) => Err(err),
                 Ok((_identifier, mut _group_data)) => {
@@ -570,7 +572,7 @@ impl Store {
         )
         .await;
 
-        DATA.with(|data| match add_owner_response {
+        STABLE_DATA.with(|data| match add_owner_response {
             Err(err) => Err(api_error(
                 ApiErrorType::BadRequest,
                 "OWNER_NOT_ADDED",
@@ -601,7 +603,7 @@ impl Store {
 
     // Method to get a list of all group roles
     pub fn get_group_roles(group_identifier: Principal) -> Vec<GroupRole> {
-        let group = DATA
+        let group = STABLE_DATA
             .with(|data| ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)));
         if let Ok((_, mut _group)) = group {
             _group.roles.append(&mut default_roles());
@@ -623,7 +625,7 @@ impl Store {
             format!("role_name` - {:?}", &role_name),
         ]);
 
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
                 Err(err) => Err(err),
                 Ok((_identifier, mut _group_data)) => {
@@ -704,7 +706,7 @@ impl Store {
             format!("permissions - {:?}", &post_permissions),
         ]);
 
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
                 Err(err) => Err(err),
                 Ok((_identifier, mut _group_data)) => {
@@ -835,7 +837,8 @@ impl Store {
                                 ApiErrorType::Unauthorized,
                                 "NOT_OWNING_NEURON",
                                 "You are not owning this neuron required to join this group",
-                                DATA.with(|data| Data::get_name(data.borrow().get()))
+                                STABLE_DATA
+                                    .with(|data| Data::get_name(data.borrow().get()))
                                     .as_str(),
                                 "validate_group_privacy",
                                 None,
@@ -863,7 +866,8 @@ impl Store {
                                 ApiErrorType::Unauthorized,
                                 "NOT_OWNING_NFT",
                                 "You are not owning NFT / token required to join this group",
-                                DATA.with(|data| Data::get_name(data.borrow().get()))
+                                STABLE_DATA
+                                    .with(|data| Data::get_name(data.borrow().get()))
                                     .as_str(),
                                 "add_invite_or_join_group_to_member",
                                 None,
@@ -1270,6 +1274,11 @@ impl Store {
             image: group.image,
             banner_image: group.banner_image,
             tags: group.tags,
+            wallets: group
+                .wallets
+                .into_iter()
+                .map(|(key, value)| (key, value))
+                .collect(),
             roles,
             member_count: group.member_count.into_iter().map(|(_, value)| value).sum(),
             is_deleted: group.is_deleted,
@@ -1292,7 +1301,7 @@ impl Store {
             return Err(false);
         };
 
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             let existing = ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier));
             match existing {
                 Ok((_, mut _group)) => {
@@ -1343,7 +1352,7 @@ impl Store {
         group_identifier: Principal,
         member_identifier: Principal,
     ) -> Result<Principal, ApiError> {
-        if let Ok((_, _group)) = DATA
+        if let Ok((_, _group)) = STABLE_DATA
             .with(|data| ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)))
         {
             if _group.owner == caller {
@@ -1393,7 +1402,8 @@ impl Store {
                         ApiErrorType::Unauthorized,
                         "PRINCIPAL_MISMATCH",
                         "Principal mismatch",
-                        DATA.with(|data| Data::get_name(data.borrow().get()))
+                        STABLE_DATA
+                            .with(|data| Data::get_name(data.borrow().get()))
                             .as_str(),
                         "check_permission",
                         None,
@@ -1412,7 +1422,8 @@ impl Store {
                         ApiErrorType::Unauthorized,
                         "NO_PERMISSION",
                         "No permission",
-                        DATA.with(|data| Data::get_name(data.borrow().get()))
+                        STABLE_DATA
+                            .with(|data| Data::get_name(data.borrow().get()))
                             .as_str(),
                         "check_permission",
                         Some(vec![
@@ -1428,7 +1439,8 @@ impl Store {
                 ApiErrorType::Unauthorized,
                 "NO_PERMISSION",
                 err.as_str(),
-                DATA.with(|data| Data::get_name(data.borrow().get()))
+                STABLE_DATA
+                    .with(|data| Data::get_name(data.borrow().get()))
                     .as_str(),
                 "check_permission",
                 None,

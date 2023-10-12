@@ -1,5 +1,5 @@
 use candid::{export_service, Principal};
-use ic_cdk::{caller, init, query, update};
+use ic_cdk::{caller, init, post_upgrade, pre_upgrade, query, update};
 use ic_scalable_canister::{ic_methods, store::Data};
 use ic_scalable_misc::{
     enums::api_error_type::ApiError,
@@ -7,39 +7,52 @@ use ic_scalable_misc::{
 };
 
 use crate::{
-    store::{DATA, ENTRIES},
+    store::{DATA, ENTRIES, STABLE_DATA},
     IDENTIFIER_KIND,
 };
 
-// #[update]
-// pub fn migrate_to_stable(code: String) {
-//     if code != "rem.codes" {
-//         return;
-//     }
+#[update]
+pub fn migrate_to_stable() {
+    if caller().to_string()
+        != "ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe".to_string()
+    {
+        return;
+    }
+    let data = DATA.with(|d| d.borrow().clone());
+    let _ = STABLE_DATA.with(|s| {
+        s.borrow_mut().set(Data {
+            name: data.name.clone(),
+            identifier: data.identifier.clone(),
+            current_entry_id: data.current_entry_id.clone(),
+            parent: data.parent.clone(),
+            is_available: data.is_available.clone(),
+            updated_at: data.updated_at.clone(),
+            created_at: data.created_at.clone(),
+        })
+    });
 
-//     let data: Data<Group> = DATA.with(|d| d.borrow().clone());
-//     let _ = STABLE_DATA.with(|s| {
-//         s.borrow_mut().set(StableData {
-//             name: data.name.clone(),
-//             identifier: data.identifier.clone(),
-//             current_entry_id: data.current_entry_id.clone(),
-//             parent: data.parent.clone(),
-//             is_available: data.is_available.clone(),
-//             updated_at: data.updated_at.clone(),
-//             created_at: data.created_at.clone(),
-//         })
-//     });
+    let _ = ENTRIES.with(|e| {
+        data.entries.iter().for_each(|entry| {
+            e.borrow_mut().insert(entry.0.to_string(), entry.1.clone());
+        });
+    });
+}
 
-//     let _ = ENTRIES.with(|e| {
-//         data.entries.iter().for_each(|entry| {
-//             e.borrow_mut().insert(entry.0.to_string(), entry.1.clone());
-//         });
-//     });
-// }
+// Stores the data in stable storage before upgrading the canister.
+#[pre_upgrade]
+pub fn pre_upgrade() {
+    DATA.with(|data| ic_methods::deprecated_pre_upgrade(data))
+}
+
+// Restores the data from stable- to heap storage after upgrading the canister.
+#[post_upgrade]
+pub fn post_upgrade() {
+    DATA.with(|data| ic_methods::deprecated_post_upgrade(data))
+}
 
 #[query]
 pub fn check_stable_data() -> Data {
-    DATA.with(|s| s.borrow().get().clone())
+    STABLE_DATA.with(|s| s.borrow().get().clone())
 }
 
 #[query]
@@ -51,7 +64,7 @@ pub fn check_stable_entries() -> u64 {
 // the data is passed along to the new canister as a byte array
 #[update]
 async fn add_entry_by_parent(entry: Vec<u8>) -> Result<(), ApiError> {
-    DATA.with(|data| {
+    STABLE_DATA.with(|data| {
         ENTRIES.with(|entries| {
             Data::add_entry_by_parent(
                 data,
@@ -74,7 +87,7 @@ fn accept_cycles() -> u64 {
 // can be extended by adding `Vec<PathEntry>` as a third parameter
 #[query]
 fn http_request(req: HttpRequest) -> HttpResponse {
-    DATA.with(|data| {
+    STABLE_DATA.with(|data| {
         ENTRIES.with(|entries| Data::http_request_with_metrics(data, entries, req, vec![]))
     })
 }
@@ -103,7 +116,7 @@ pub fn __export_did_tmp_() -> String {
 // the identifier is a incremented number that is used to create a unique name for the canister combined with the name
 #[init]
 pub fn init(parent: Principal, name: String, identifier: usize) {
-    DATA.with(|data| {
+    STABLE_DATA.with(|data| {
         ic_methods::init(data, parent, name, identifier);
     });
 }
