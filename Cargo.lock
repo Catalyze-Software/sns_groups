@@ -204,6 +204,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "ciborium"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "effd91f6c78e5a4ace8a5d3c0b6bfaec9e2baaef55f3efc00e45fb2e477ee926"
+dependencies = [
+ "ciborium-io",
+ "ciborium-ll",
+ "serde",
+]
+
+[[package]]
+name = "ciborium-io"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cdf919175532b369853f5d5e20b26b43112613fd6fe7aee757e35f7a44642656"
+
+[[package]]
+name = "ciborium-ll"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "defaa24ecc093c77630e6c15e17c51f5e187bf35ee514f4e2d67baaa96dae22b"
+dependencies = [
+ "ciborium-io",
+ "half",
+]
+
+[[package]]
 name = "cipher"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -588,9 +615,9 @@ dependencies = [
 
 [[package]]
 name = "ic-stable-structures"
-version = "0.6.0-beta.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fc18a65191884de50fc7f25d550aa55f4f608e9e3b17fbaec9bf290483eb2b8"
+checksum = "be4867a1d9f232e99ca68682161d1fc67dff9501f4f1bf42d69a9358289ad0f8"
 
 [[package]]
 name = "ic0"
@@ -600,11 +627,12 @@ checksum = "16efdbe5d9b0ea368da50aedbf7640a054139569236f1a5249deb5fd9af5a5d5"
 
 [[package]]
 name = "ic_scalable_canister"
-version = "0.3.0-beta.6"
+version = "0.3.0-beta.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "443736c68667ba434eec922aa476f670ae02f8914a49d1560453014d2ab0161b"
+checksum = "9aea3011bd1a2681a45cfafb66d1884bddca275912a098f1e21aac9b321beca6"
 dependencies = [
  "candid",
+ "ciborium",
  "ic-cdk 0.11.0",
  "ic-stable-structures",
  "ic_scalable_misc",
@@ -615,9 +643,9 @@ dependencies = [
 
 [[package]]
 name = "ic_scalable_misc"
-version = "1.0.1-beta.1"
+version = "1.0.1-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d90848bac06198820439c79e9476df351fd9ecaaaeb9498390ddeb571e910c9"
+checksum = "042124050564b29fe56bea1471ce2779bd44efe61e7154a2b3c10e57b4eb1d63"
 dependencies = [
  "base64",
  "bincode",

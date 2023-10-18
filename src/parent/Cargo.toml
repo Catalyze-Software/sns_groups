@@ -17,6 +17,6 @@ path = "src/lib.rs"
 ic-cdk = "0.11.0"
 candid = "0.9.8"
 serde = "1.0"
-ic_scalable_misc = "1.0.1-beta.0"
+ic_scalable_misc = "1.0.1-beta.2"
 shared = { path = "../shared" }
 ic-cdk-timers = "0.4.0"
