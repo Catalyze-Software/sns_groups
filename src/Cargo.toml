@@ -15,4 +15,4 @@ child = { path = "child"}
 shared = { path = "shared"}
 
 [dev-dependencies]
-cargo-husky = "1"
+cargo-husky = "0.0.2"
