@@ -1,3 +1,4 @@
+pub mod combine_store;
 pub mod default;
 pub mod methods;
 pub mod scalable_methods;
