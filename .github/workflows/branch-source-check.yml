@@ -23,7 +23,7 @@ jobs:
           echo ${{ secrets.CATALYZE_DEVELOPMENT }} | base64 --decode > catalyze_development.pem
           dfx identity import --storage-mode=plaintext catalyze_development catalyze_development.pem
           dfx identity use catalyze_development
-          dfx canister install cejac-viaaa-aaaap-abqva-cai --network ic --wasm wasm/parent.wasm.gz --mode upgrade
+          dfx canister install parent --network development --wasm wasm/parent.wasm.gz --mode upgrade
 
       - name: Check source for QA
         if: github.base_ref == 'QA'
