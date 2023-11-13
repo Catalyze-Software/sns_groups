@@ -33,7 +33,7 @@
       ],
       "type": "persistent"
     },
-    "dev": {
+    "development": {
       "providers": [
         "https://mainnet.dfinity.network"
       ],
