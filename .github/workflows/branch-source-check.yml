@@ -17,7 +17,7 @@ jobs:
       - name: Decode PEM
         run: |
           echo ${{ secrets.CATALYZE_DEVELOPMENT }} | base64 --decode > catalyze_development.pem
-          dfx identity import catalyze_development catalyze_development.pem
+          dfx identity import --storage-mode=plaintext catalyze_development catalyze_development.pem
           dfx identity list
 
       # - name: Check source for development
