@@ -1,7 +1,6 @@
 name: Check Source Branch
 
 on:
-  push:
   pull_request:
     branches:
       - QA
