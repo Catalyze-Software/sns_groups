@@ -22,7 +22,6 @@ jobs:
         run: |
           echo ${{ secrets.CATALYZE_DEVELOPMENT }} | base64 --decode > catalyze_development.pem
           dfx identity import --storage-mode=plaintext catalyze_development catalyze_development.pem
-          bash scripts/generate.sh
           dfx canister install parent --network development --wasm wasm/parent.wasm.gz --mode upgrade
 
       - name: Check source for QA
