@@ -23,13 +23,13 @@
     },
     "ic": {
       "providers": [
-        "https://mainnet.dfinity.network"
+        "https://icp0.io"
       ],
       "type": "persistent"
     },
     "staging": {
       "providers": [
-        "https://mainnet.dfinity.network"
+        "https://icp0.io"
       ],
       "type": "persistent"
     },
