@@ -35,7 +35,7 @@
     },
     "development": {
       "providers": [
-        "https://mainnet.dfinity.network"
+        "https://icp0.io"
       ],
       "type": "persistent"
     }
