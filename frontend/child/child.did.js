@@ -245,7 +245,14 @@ export const idlFactory = ({ IDL }) => {
         [Result_2],
         [],
       ),
+    'backup_data' : IDL.Func([], [IDL.Text], []),
+    'clear_backup' : IDL.Func([], [], []),
     'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_3], []),
+    'download_chunk' : IDL.Func(
+        [IDL.Nat64],
+        [IDL.Tuple(IDL.Nat64, IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
     'edit_group' : IDL.Func(
         [IDL.Principal, UpdateGroup, IDL.Principal],
         [Result_1],
@@ -256,6 +263,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_4],
         [],
       ),
+    'finalize_upload' : IDL.Func([], [IDL.Text], []),
     'get_chunked_data' : IDL.Func(
         [IDL.Vec(GroupFilter), FilterType, IDL.Nat64, IDL.Nat64],
         [IDL.Vec(IDL.Nat8), IDL.Tuple(IDL.Nat64, IDL.Nat64)],
@@ -300,9 +308,16 @@ export const idlFactory = ({ IDL }) => {
         [Result_4],
         [],
       ),
+    'restore_data' : IDL.Func([], [], []),
+    'total_chunks' : IDL.Func([], [IDL.Nat64], ['query']),
     'update_member_count' : IDL.Func(
         [IDL.Principal, IDL.Principal, IDL.Nat64],
         [Result_8],
+        [],
+      ),
+    'upload_chunk' : IDL.Func(
+        [IDL.Tuple(IDL.Nat64, IDL.Vec(IDL.Nat8))],
+        [],
         [],
       ),
   });

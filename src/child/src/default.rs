@@ -50,6 +50,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 pub fn __export_did_tmp_() -> String {
     use candid::export_service;
     use candid::Principal;
+    use ic_canister_backup::models::*;
     use ic_cdk::api::management_canister::http_request::HttpResponse;
     use ic_scalable_misc::enums::api_error_type::ApiError;
     use ic_scalable_misc::enums::filter_type::FilterType;
