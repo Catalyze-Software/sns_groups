@@ -223,6 +223,7 @@ export interface _SERVICE {
     [Principal, string, string, bigint, Principal],
     Result_2
   >,
+  'add_wallet' : ActorMethod<[Principal, Principal, string], Result>,
   'backup_data' : ActorMethod<[], string>,
   'clear_backup' : ActorMethod<[], undefined>,
   'delete_group' : ActorMethod<[Principal, Principal], Result_3>,
@@ -248,6 +249,7 @@ export interface _SERVICE {
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'migration_add_groups' : ActorMethod<[Array<[Principal, Group]>], undefined>,
   'remove_role' : ActorMethod<[Principal, string, Principal], Result_4>,
+  'remove_wallet' : ActorMethod<[Principal, Principal], Result>,
   'restore_data' : ActorMethod<[], undefined>,
   'total_chunks' : ActorMethod<[], bigint>,
   'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_8>,

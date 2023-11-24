@@ -245,6 +245,11 @@ export const idlFactory = ({ IDL }) => {
         [Result_2],
         [],
       ),
+    'add_wallet' : IDL.Func(
+        [IDL.Principal, IDL.Principal, IDL.Text],
+        [Result],
+        [],
+      ),
     'backup_data' : IDL.Func([], [IDL.Text], []),
     'clear_backup' : IDL.Func([], [], []),
     'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_3], []),
@@ -308,6 +313,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_4],
         [],
       ),
+    'remove_wallet' : IDL.Func([IDL.Principal, IDL.Principal], [Result], []),
     'restore_data' : IDL.Func([], [], []),
     'total_chunks' : IDL.Func([], [IDL.Nat64], ['query']),
     'update_member_count' : IDL.Func(
