@@ -1,0 +1,27 @@
+name: Check Source Branch
+
+on:
+  pull_request:
+    branches:
+      - QA
+      - master
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source for QA
+        if: github.base_ref == 'QA'
+        run: |
+          if [[ "${{ github.head_ref }}" != "development" ]]; then
+            echo "Only changes from the development branch can be merged into QA."
+            exit 1
+          fi
+
+      - name: Check source for master
+        if: github.base_ref == 'master'
+        run: |
+          if [[ "${{ github.head_ref }}" != "QA" ]]; then
+            echo "Only changes from the QA branch can be merged into master."
+            exit 1
+          fi

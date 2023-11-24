@@ -13,3 +13,6 @@ crate-type = ["lib"]
 parent = { path = "parent"}
 child = { path = "child"}
 shared = { path = "shared"}
+
+[dev-dependencies]
+cargo-husky = "0.0.2"
