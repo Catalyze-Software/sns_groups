@@ -1,0 +1,49 @@
+name: Check Source Branch
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+      - staging
+      - development
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install dfx
+        uses: dfinity/setup-dfx@main
+
+      - name: Deploy to development
+        if: github.base_ref == 'development'
+        run: |
+          echo ${{ secrets.CATALYZE_DEVELOPMENT }} | base64 --decode > catalyze_development.pem
+          dfx identity import --storage-mode=plaintext catalyze_development catalyze_development.pem
+          dfx identity use catalyze_development
+          dfx canister install parent --network development --wasm wasm/parent.wasm.gz --mode upgrade
+
+      - name: Deploy to staging
+        if: github.base_ref == 'staging'
+        run: |
+          if [[ "${{ github.head_ref }}" != "development" ]]; then
+            echo "Only changes from the development branch can be merged into staging."
+            exit 1
+          else
+            echo ${{ secrets.CATALYZE_STAGING }} | base64 --decode > catalyze_staging.pem
+            dfx identity import --storage-mode=plaintext catalyze_staging catalyze_staging.pem
+            dfx identity use catalyze_staging
+            dfx canister install parent --network staging --wasm wasm/parent.wasm.gz --mode upgrade
+          fi
+
+      - name: Check source for master
+        if: github.base_ref == 'master'
+        run: |
+          if [[ "${{ github.head_ref }}" == "staging" ]]; then
+            echo "Only changes from the staging branch can be merged into master."
+            exit 1
+          fi

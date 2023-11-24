@@ -224,12 +224,16 @@ export interface _SERVICE {
     Result_2
   >,
   'add_wallet' : ActorMethod<[Principal, Principal, string], Result>,
+  'backup_data' : ActorMethod<[], string>,
+  'clear_backup' : ActorMethod<[], undefined>,
   'delete_group' : ActorMethod<[Principal, Principal], Result_3>,
+  'download_chunk' : ActorMethod<[bigint], [bigint, Uint8Array | number[]]>,
   'edit_group' : ActorMethod<[Principal, UpdateGroup, Principal], Result_1>,
   'edit_role_permissions' : ActorMethod<
     [Principal, string, Array<PostPermission>, Principal],
     Result_4
   >,
+  'finalize_upload' : ActorMethod<[], string>,
   'get_chunked_data' : ActorMethod<
     [Array<GroupFilter>, FilterType, bigint, bigint],
     [Uint8Array | number[], [bigint, bigint]]
@@ -246,5 +250,8 @@ export interface _SERVICE {
   'migration_add_groups' : ActorMethod<[Array<[Principal, Group]>], undefined>,
   'remove_role' : ActorMethod<[Principal, string, Principal], Result_4>,
   'remove_wallet' : ActorMethod<[Principal, Principal], Result>,
+  'restore_data' : ActorMethod<[], undefined>,
+  'total_chunks' : ActorMethod<[], bigint>,
   'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_8>,
+  'upload_chunk' : ActorMethod<[[bigint, Uint8Array | number[]]], undefined>,
 }

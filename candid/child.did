@@ -200,11 +200,15 @@ service : (principal, text, nat64) -> {
   add_group : (PostGroup, principal, opt text) -> (Result_1);
   add_role : (principal, text, text, nat64, principal) -> (Result_2);
   add_wallet : (principal, principal, text) -> (Result);
+  backup_data : () -> (text);
+  clear_backup : () -> ();
   delete_group : (principal, principal) -> (Result_3);
+  download_chunk : (nat64) -> (record { nat64; vec nat8 }) query;
   edit_group : (principal, UpdateGroup, principal) -> (Result_1);
   edit_role_permissions : (principal, text, vec PostPermission, principal) -> (
       Result_4,
     );
+  finalize_upload : () -> (text);
   get_chunked_data : (vec GroupFilter, FilterType, nat64, nat64) -> (
       vec nat8,
       record { nat64; nat64 },
@@ -220,5 +224,8 @@ service : (principal, text, nat64) -> {
   migration_add_groups : (vec record { principal; Group }) -> ();
   remove_role : (principal, text, principal) -> (Result_4);
   remove_wallet : (principal, principal) -> (Result);
+  restore_data : () -> ();
+  total_chunks : () -> (nat64) query;
   update_member_count : (principal, principal, nat64) -> (Result_8);
+  upload_chunk : (record { nat64; vec nat8 }) -> ();
 }
