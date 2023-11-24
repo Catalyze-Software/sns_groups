@@ -1011,6 +1011,12 @@ impl Store {
         filters: Vec<GroupFilter>,
         filter_type: FilterType,
     ) -> Vec<GroupResponse> {
+        if let FilterType::Or = filter_type {
+            if filters.len() == 0 {
+                return groups;
+            }
+        }
+
         match filter_type {
             // this filter type will return groups that match all the filters
             FilterType::And => {
@@ -1278,6 +1284,12 @@ impl Store {
         group_identifier: Principal,
         member_identifier: Principal,
     ) -> Result<Principal, ApiError> {
+        if let Ok((_, _group)) = DATA.with(|data| Data::get_entry(data, group_identifier)) {
+            if _group.owner == caller {
+                return Ok(caller);
+            }
+        }
+
         Self::check_permission(
             caller,
             group_identifier,
