@@ -66,6 +66,7 @@ export interface GroupResponse {
   'created_on' : bigint,
   'website' : string,
   'privacy' : Privacy,
+  'wallets' : Array<[Principal, string]>,
   'image' : Asset,
   'identifier' : Principal,
   'member_count' : bigint,

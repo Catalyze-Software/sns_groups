@@ -75,6 +75,7 @@ type GroupResponse = record {
   created_on : nat64;
   website : text;
   privacy : Privacy;
+  wallets : vec record { principal; text };
   image : Asset;
   identifier : principal;
   member_count : nat64;

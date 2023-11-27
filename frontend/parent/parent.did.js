@@ -171,6 +171,7 @@ export const idlFactory = ({ IDL }) => {
     'created_on' : IDL.Nat64,
     'website' : IDL.Text,
     'privacy' : Privacy,
+    'wallets' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Text)),
     'image' : Asset,
     'identifier' : IDL.Principal,
     'member_count' : IDL.Nat64,
