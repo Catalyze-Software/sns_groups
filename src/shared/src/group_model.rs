@@ -95,6 +95,7 @@ pub struct GroupResponse {
     pub tags: Vec<u32>,
     pub roles: Vec<GroupRole>,
     pub member_count: usize,
+    pub wallets: Vec<(Principal, String)>,
     pub is_deleted: bool,
     pub updated_on: u64,
     pub created_on: u64,

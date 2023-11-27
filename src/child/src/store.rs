@@ -1218,6 +1218,7 @@ impl Store {
             is_deleted: group.is_deleted,
             updated_on: group.updated_on,
             created_on: group.created_on,
+            wallets: group.wallets.into_iter().collect(),
         }
     }
 
