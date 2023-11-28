@@ -215,15 +215,7 @@ pub fn update_member_count(
     member_canister: Principal,
     member_count: usize,
 ) -> Result<(), bool> {
-    let _caller = caller();
-
-    let (_, _, kind) = Identifier::decode(&member_canister);
-
-    if kind != "mbr" {
-        return Err(false);
-    }
-
-    if _caller == member_canister {
+    if caller() == member_canister {
         return Store::update_member_count(group_identifier, member_canister, member_count);
     }
     return Err(false);
