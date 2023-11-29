@@ -223,7 +223,9 @@ export interface _SERVICE {
     [Principal, string, string, bigint, Principal],
     Result_2
   >,
+  'backup_data' : ActorMethod<[], string>,
   'delete_group' : ActorMethod<[Principal, Principal], Result_3>,
+  'download_chunk' : ActorMethod<[bigint], [bigint, Uint8Array | number[]]>,
   'edit_group' : ActorMethod<[Principal, UpdateGroup, Principal], Result_1>,
   'edit_role_permissions' : ActorMethod<
     [Principal, string, Array<PostPermission>, Principal],
@@ -244,5 +246,6 @@ export interface _SERVICE {
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
   'migration_add_groups' : ActorMethod<[Array<[Principal, Group]>], undefined>,
   'remove_role' : ActorMethod<[Principal, string, Principal], Result_4>,
+  'total_chunks' : ActorMethod<[], bigint>,
   'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_8>,
 }

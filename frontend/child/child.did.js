@@ -245,7 +245,13 @@ export const idlFactory = ({ IDL }) => {
         [Result_2],
         [],
       ),
+    'backup_data' : IDL.Func([], [IDL.Text], []),
     'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_3], []),
+    'download_chunk' : IDL.Func(
+        [IDL.Nat64],
+        [IDL.Tuple(IDL.Nat64, IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
     'edit_group' : IDL.Func(
         [IDL.Principal, UpdateGroup, IDL.Principal],
         [Result_1],
@@ -300,6 +306,7 @@ export const idlFactory = ({ IDL }) => {
         [Result_4],
         [],
       ),
+    'total_chunks' : IDL.Func([], [IDL.Nat64], ['query']),
     'update_member_count' : IDL.Func(
         [IDL.Principal, IDL.Principal, IDL.Nat64],
         [Result_8],

@@ -199,7 +199,9 @@ service : (principal, text, nat64) -> {
   add_entry_by_parent : (vec nat8) -> (Result);
   add_group : (PostGroup, principal, opt text) -> (Result_1);
   add_role : (principal, text, text, nat64, principal) -> (Result_2);
+  backup_data : () -> (text);
   delete_group : (principal, principal) -> (Result_3);
+  download_chunk : (nat64) -> (record { nat64; vec nat8 }) query;
   edit_group : (principal, UpdateGroup, principal) -> (Result_1);
   edit_role_permissions : (principal, text, vec PostPermission, principal) -> (
       Result_4,
@@ -218,5 +220,6 @@ service : (principal, text, nat64) -> {
   http_request : (HttpRequest) -> (HttpResponse) query;
   migration_add_groups : (vec record { principal; Group }) -> ();
   remove_role : (principal, text, principal) -> (Result_4);
+  total_chunks : () -> (nat64) query;
   update_member_count : (principal, principal, nat64) -> (Result_8);
 }
