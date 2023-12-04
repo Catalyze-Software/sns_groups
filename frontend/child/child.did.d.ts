@@ -199,8 +199,6 @@ export type Result_6 = { 'Ok' : PagedResponse } |
 export type Result_7 = { 'Ok' : Array<GroupResponse> } |
   { 'Err' : ApiError };
 export type Result_8 = { 'Ok' : null } |
-  { 'Err' : string };
-export type Result_9 = { 'Ok' : null } |
   { 'Err' : boolean };
 export type SortDirection = { 'Asc' : null } |
   { 'Desc' : null };
@@ -260,12 +258,10 @@ export interface _SERVICE {
   >,
   'get_groups_by_id' : ActorMethod<[Array<Principal>], Result_7>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
-  'migrate_to_stable' : ActorMethod<[], undefined>,
-  'migration_add_groups' : ActorMethod<[], Result_8>,
   'remove_role' : ActorMethod<[Principal, string, Principal], Result_4>,
   'remove_wallet' : ActorMethod<[Principal, Principal], Result>,
-  'set_entry_count' : ActorMethod<[], Result_8>,
+  'restore_data' : ActorMethod<[], undefined>,
   'total_chunks' : ActorMethod<[], bigint>,
-  'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_9>,
+  'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_8>,
   'upload_chunk' : ActorMethod<[[bigint, Uint8Array | number[]]], undefined>,
 }

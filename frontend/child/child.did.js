@@ -240,8 +240,7 @@ export const idlFactory = ({ IDL }) => {
     'body' : IDL.Vec(IDL.Nat8),
     'headers' : IDL.Vec(HttpHeader),
   });
-  const Result_8 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Text });
-  const Result_9 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Bool });
+  const Result_8 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Bool });
   return IDL.Service({
     '__get_candid_interface_tmp_hack' : IDL.Func([], [IDL.Text], ['query']),
     'accept_cycles' : IDL.Func([], [IDL.Nat64], []),
@@ -315,19 +314,17 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
-    'migrate_to_stable' : IDL.Func([], [], []),
-    'migration_add_groups' : IDL.Func([], [Result_8], []),
     'remove_role' : IDL.Func(
         [IDL.Principal, IDL.Text, IDL.Principal],
         [Result_4],
         [],
       ),
     'remove_wallet' : IDL.Func([IDL.Principal, IDL.Principal], [Result], []),
-    'set_entry_count' : IDL.Func([], [Result_8], []),
+    'restore_data' : IDL.Func([], [], []),
     'total_chunks' : IDL.Func([], [IDL.Nat64], ['query']),
     'update_member_count' : IDL.Func(
         [IDL.Principal, IDL.Principal, IDL.Nat64],
-        [Result_9],
+        [Result_8],
         [],
       ),
     'upload_chunk' : IDL.Func(

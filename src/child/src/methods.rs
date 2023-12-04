@@ -1,16 +1,8 @@
-use std::collections::HashMap;
-
 use candid::Principal;
-use ic_cdk::{
-    api::call::{self, RejectionCode},
-    caller, query, update,
-};
+use ic_cdk::{caller, query, update};
 
 use ic_scalable_misc::{
-    enums::{
-        api_error_type::ApiError, filter_type::FilterType, privacy_type::Privacy,
-        sort_type::SortDirection,
-    },
+    enums::{api_error_type::ApiError, filter_type::FilterType, privacy_type::Privacy},
     models::{
         group_role::GroupRole, paged_response_models::PagedResponse,
         permissions_models::PostPermission,
@@ -18,110 +10,7 @@ use ic_scalable_misc::{
 };
 use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGroup, UpdateGroup};
 
-use crate::store::ENTRIES;
-
 use super::store::{Store, STABLE_DATA};
-
-#[update]
-pub async fn set_entry_count() -> Result<(), String> {
-    if caller()
-        == Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
-            .unwrap()
-    {
-        STABLE_DATA.with(|d| {
-            let mut old_data = d.borrow().get().clone();
-            old_data.current_entry_id = 1000;
-            let _ = d.borrow_mut().set(old_data);
-        })
-    }
-
-    return Ok(());
-}
-
-#[update]
-pub async fn migration_add_groups() -> Result<(), String> {
-    if caller()
-        != Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
-            .unwrap()
-    {
-        return Err("Unauthorized".to_string());
-    }
-    let result: Result<(Result<PagedResponse<GroupResponse>, ApiError>,), (RejectionCode, String)> =
-        call::call(
-            Principal::from_text("5rvte-7aaaa-aaaap-aa4ja-cai").unwrap(),
-            "get_groups",
-            (
-                1000 as u64,
-                1 as u64,
-                Vec::<GroupFilter>::new(),
-                FilterType::And,
-                GroupSort::Name(SortDirection::Asc),
-                false,
-            ),
-        )
-        .await;
-
-    match result {
-        Err((_, err)) => {
-            return Err(err);
-        }
-        Ok((Err(err),)) => {
-            return Err(err.to_string());
-        }
-        Ok((Ok(groups),)) => {
-            ENTRIES.with(|data| {
-                // data.borrow_mut().entries = HashMap::from_iter(groups);
-                groups.data.into_iter().for_each(|g| {
-                    data.borrow_mut().insert(
-                        g.identifier.to_string(),
-                        Group {
-                            name: g.name,
-                            description: g.description,
-                            website: g.website,
-                            location: g.location,
-                            privacy: g.privacy,
-                            owner: g.owner,
-                            created_by: g.created_by,
-                            matrix_space_id: g.matrix_space_id,
-                            image: g.image,
-                            banner_image: g.banner_image,
-                            tags: g.tags,
-                            roles: g.roles,
-                            is_deleted: g.is_deleted,
-                            member_count: HashMap::new(),
-                            wallets: HashMap::new(),
-                            updated_on: g.updated_on,
-                            created_on: g.created_on,
-                        },
-                    );
-                });
-            });
-            Ok(())
-        }
-    }
-}
-
-// #[update]
-// pub fn migration_add_groups(groups: Vec<(Principal, Group)>) -> () {
-//     if caller()
-//         == Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
-//             .unwrap()
-//     {
-//         DATA.with(|data| {
-//             let _ = data.borrow_mut().set(Data {
-//                 current_entry_id: groups.clone().len() as u64,
-//                 ..data.borrow().get().clone()
-//             });
-//         });
-
-//         ENTRIES.with(|data| {
-//             // data.borrow_mut().entries = HashMap::from_iter(groups);
-//             groups.into_iter().for_each(|(k, v)| {
-//                 data.borrow_mut().insert(k.to_string(), v);
-//             });
-//         });
-//     }
-// }
 
 // This method is used to add a group to the canister,
 // The method is async because it optionally creates a new canister is created
