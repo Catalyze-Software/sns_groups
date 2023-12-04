@@ -58,8 +58,6 @@ thread_local! {
             MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(2))),
         )
     );
-
-    pub static DATA: RefCell<ic_scalable_misc::models::original_data::Data<Group>> = RefCell::new(ic_scalable_misc::models::original_data::Data::default());
 }
 
 pub struct Store;
