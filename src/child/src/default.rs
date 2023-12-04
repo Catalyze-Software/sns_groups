@@ -1,10 +1,10 @@
 use candid::{export_service, Principal};
 use ic_cdk::{caller, init, query, update};
-use ic_scalable_canister::{ic_methods, store::Data};
-use ic_scalable_misc::{
+use ic_scalable_canister::ic_scalable_misc::{
     enums::api_error_type::ApiError,
     models::http_models::{HttpRequest, HttpResponse},
 };
+use ic_scalable_canister::{ic_methods, store::Data};
 
 use crate::{
     store::{ENTRIES, STABLE_DATA},
@@ -50,13 +50,13 @@ pub fn __export_did_tmp_() -> String {
     use candid::Principal;
     use ic_canister_backup::models::*;
     use ic_cdk::api::management_canister::http_request::HttpResponse;
-    use ic_scalable_misc::enums::api_error_type::ApiError;
-    use ic_scalable_misc::enums::filter_type::FilterType;
-    use ic_scalable_misc::enums::privacy_type::Privacy;
-    use ic_scalable_misc::models::group_role::GroupRole;
-    use ic_scalable_misc::models::http_models::HttpRequest;
-    use ic_scalable_misc::models::paged_response_models::PagedResponse;
-    use ic_scalable_misc::models::permissions_models::PostPermission;
+    use ic_scalable_canister::ic_scalable_misc::enums::api_error_type::ApiError;
+    use ic_scalable_canister::ic_scalable_misc::enums::filter_type::FilterType;
+    use ic_scalable_canister::ic_scalable_misc::enums::privacy_type::Privacy;
+    use ic_scalable_canister::ic_scalable_misc::models::group_role::GroupRole;
+    use ic_scalable_canister::ic_scalable_misc::models::http_models::HttpRequest;
+    use ic_scalable_canister::ic_scalable_misc::models::paged_response_models::PagedResponse;
+    use ic_scalable_canister::ic_scalable_misc::models::permissions_models::PostPermission;
     use shared::group_model::*;
     export_service!();
     __export_service()
@@ -76,6 +76,6 @@ pub fn init(parent: Principal, name: String, identifier: usize) {
 // Method used to save the candid interface to a file
 #[test]
 pub fn candid() {
-    use ic_scalable_misc::helpers::candid_helper::save_candid;
+    use ic_scalable_canister::ic_scalable_misc::helpers::candid_helper::save_candid;
     save_candid(__export_did_tmp_(), String::from("child"));
 }

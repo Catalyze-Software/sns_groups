@@ -1,7 +1,7 @@
 use candid::Decode;
 use ic_canister_backup::{logic::BACKUP, models::Chunk};
 use ic_cdk::{caller, query, update};
-use ic_scalable_canister::store::Data;
+use ic_scalable_canister::{ic_scalable_misc, store::Data};
 use ic_stable_structures::{memory_manager::MemoryId, StableBTreeMap};
 use shared::group_model::Group;
 

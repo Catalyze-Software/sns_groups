@@ -2,8 +2,7 @@ use std::{collections::HashMap, iter::FromIterator, vec};
 
 use candid::Principal;
 use ic_cdk::api::{call, time};
-use ic_scalable_canister::store::Data;
-use ic_scalable_misc::{
+use ic_scalable_canister::ic_scalable_misc::{
     enums::{
         api_error_type::{ApiError, ApiErrorType},
         filter_type::FilterType,
@@ -27,6 +26,7 @@ use ic_scalable_misc::{
         permissions_models::{Permission, PermissionActionType, PermissionType, PostPermission},
     },
 };
+use ic_scalable_canister::store::Data;
 
 use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGroup, UpdateGroup};
 use std::cell::RefCell;

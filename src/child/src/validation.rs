@@ -1,4 +1,4 @@
-use ic_scalable_misc::{
+use ic_scalable_canister::ic_scalable_misc::{
     enums::{api_error_type::ApiError, validation_type::ValidationType},
     helpers::validation_helper::Validator,
     models::validation_models::ValidateField,

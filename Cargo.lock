@@ -198,7 +198,6 @@ dependencies = [
  "ic-stable-structures",
  "ic_canister_backup",
  "ic_scalable_canister",
- "ic_scalable_misc",
  "serde",
  "serde_json",
  "shared",
