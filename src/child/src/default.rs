@@ -11,16 +11,6 @@ use crate::{
     IDENTIFIER_KIND,
 };
 
-#[query]
-pub fn check_stable_data() -> Data {
-    STABLE_DATA.with(|s| s.borrow().get().clone())
-}
-
-#[query]
-pub fn check_stable_entries() -> u64 {
-    ENTRIES.with(|s| s.borrow().len() as u64)
-}
-
 // This call get triggered when a new canister is spun up
 // the data is passed along to the new canister as a byte array
 #[update]

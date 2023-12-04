@@ -26,15 +26,6 @@ type ChunkData = record {
   canister : principal;
   index : nat64;
 };
-type Data = record {
-  updated_at : nat64;
-  name : text;
-  current_entry_id : nat64;
-  created_at : nat64;
-  is_available : bool;
-  identifier : nat64;
-  parent : principal;
-};
 type DateRange = record { end_date : nat64; start_date : nat64 };
 type ErrorMessage = record {
   tag : text;
@@ -210,8 +201,6 @@ service : (principal, text, nat64) -> {
   add_group : (PostGroup, principal, opt text) -> (Result_1);
   add_role : (principal, text, text, nat64, principal) -> (Result_2);
   add_wallet : (principal, principal, text) -> (Result);
-  check_stable_data : () -> (Data) query;
-  check_stable_entries : () -> (nat64) query;
   clear_backup : () -> ();
   delete_group : (principal, principal) -> (Result_3);
   download_chunk : (nat64) -> (record { nat64; vec nat8 }) query;

@@ -31,15 +31,6 @@ export interface ChunkData {
   'canister' : Principal,
   'index' : bigint,
 }
-export interface Data {
-  'updated_at' : bigint,
-  'name' : string,
-  'current_entry_id' : bigint,
-  'created_at' : bigint,
-  'is_available' : boolean,
-  'identifier' : bigint,
-  'parent' : Principal,
-}
 export interface DateRange { 'end_date' : bigint, 'start_date' : bigint }
 export interface ErrorMessage {
   'tag' : string,
@@ -234,8 +225,6 @@ export interface _SERVICE {
     Result_2
   >,
   'add_wallet' : ActorMethod<[Principal, Principal, string], Result>,
-  'check_stable_data' : ActorMethod<[], Data>,
-  'check_stable_entries' : ActorMethod<[], bigint>,
   'clear_backup' : ActorMethod<[], undefined>,
   'delete_group' : ActorMethod<[Principal, Principal], Result_3>,
   'download_chunk' : ActorMethod<[bigint], [bigint, Uint8Array | number[]]>,

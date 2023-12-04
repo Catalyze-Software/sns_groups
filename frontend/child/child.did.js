@@ -147,15 +147,6 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_1 = IDL.Variant({ 'Ok' : GroupResponse, 'Err' : ApiError });
   const Result_2 = IDL.Variant({ 'Ok' : GroupRole, 'Err' : ApiError });
-  const Data = IDL.Record({
-    'updated_at' : IDL.Nat64,
-    'name' : IDL.Text,
-    'current_entry_id' : IDL.Nat64,
-    'created_at' : IDL.Nat64,
-    'is_available' : IDL.Bool,
-    'identifier' : IDL.Nat64,
-    'parent' : IDL.Principal,
-  });
   const Group = IDL.Record({
     'updated_on' : IDL.Nat64,
     'banner_image' : Asset,
@@ -260,8 +251,6 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
-    'check_stable_data' : IDL.Func([], [Data], ['query']),
-    'check_stable_entries' : IDL.Func([], [IDL.Nat64], ['query']),
     'clear_backup' : IDL.Func([], [], []),
     'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_3], []),
     'download_chunk' : IDL.Func(
