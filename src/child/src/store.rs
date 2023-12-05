@@ -41,6 +41,8 @@ use ic_stable_structures::{
 
 type Memory = VirtualMemory<DefaultMemoryImpl>;
 
+pub static DATA_MEMORY_ID: MemoryId = MemoryId::new(0);
+pub static ENTRIES_MEMORY_ID: MemoryId = MemoryId::new(1);
 thread_local! {
     pub static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
         RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
@@ -48,14 +50,14 @@ thread_local! {
     // NEW STABLE
     pub static STABLE_DATA: RefCell<StableCell<Data, Memory>> = RefCell::new(
         StableCell::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(0))),
+            MEMORY_MANAGER.with(|m| m.borrow().get(DATA_MEMORY_ID)),
             Data::default(),
         ).expect("failed")
     );
 
     pub static ENTRIES: RefCell<StableBTreeMap<String, Group, Memory>> = RefCell::new(
         StableBTreeMap::init(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))),
+            MEMORY_MANAGER.with(|m| m.borrow().get(ENTRIES_MEMORY_ID)),
         )
     );
 }

@@ -2,17 +2,17 @@ use candid::Decode;
 use ic_canister_backup::{logic::BACKUP, models::Chunk};
 use ic_cdk::{caller, query, update};
 use ic_scalable_canister::{ic_scalable_misc, store::Data};
-use ic_stable_structures::{memory_manager::MemoryId, StableBTreeMap};
+use ic_stable_structures::StableBTreeMap;
 use shared::group_model::Group;
 
-use crate::store::{ENTRIES, MEMORY_MANAGER, STABLE_DATA};
+use crate::store::{ENTRIES, ENTRIES_MEMORY_ID, MEMORY_MANAGER, STABLE_DATA};
 
 //
 #[update(guard = "is_owner")]
 pub fn restore_data() {
     ENTRIES.with(|n| {
         n.replace(StableBTreeMap::new(
-            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(1))),
+            MEMORY_MANAGER.with(|m| m.borrow().get(ENTRIES_MEMORY_ID)),
         ))
     });
 
