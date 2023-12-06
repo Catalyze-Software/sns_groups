@@ -39,7 +39,9 @@ fn accept_cycles() -> u64 {
 #[query]
 fn http_request(req: HttpRequest) -> HttpResponse {
     STABLE_DATA.with(|data| {
-        ENTRIES.with(|entries| Data::http_request_with_metrics(data, entries, req, vec![]))
+        ENTRIES.with(|entries| {
+            Data::http_request_with_metrics(data, entries.borrow().len() as usize, req, vec![])
+        })
     })
 }
 
