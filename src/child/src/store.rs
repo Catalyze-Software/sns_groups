@@ -263,10 +263,23 @@ impl Store {
         STABLE_DATA.with(|data| {
             match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
                 Err(err) => Err(err),
-                Ok((_identifier, _group_data)) => Ok(Self::map_group_to_group_response(
-                    _identifier.to_string(),
-                    _group_data,
-                )),
+                Ok((_identifier, _group_data)) => {
+                    if _group_data.is_deleted {
+                        return Err(api_error(
+                            ApiErrorType::NotFound,
+                            "GROUP_NOT_FOUND",
+                            "No group found",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "get_group",
+                            None,
+                        ));
+                    }
+
+                    Ok(Self::map_group_to_group_response(
+                        _identifier.to_string(),
+                        _group_data,
+                    ))
+                }
             }
         })
     }
