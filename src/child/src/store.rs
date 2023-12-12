@@ -93,12 +93,14 @@ impl Store {
             updated_on: time(),
             created_on: time(),
             wallets: HashMap::new(),
+            privacy_gated_type_amount: temp_group.privacy_gated_type_amount,
         };
 
         let add_entry_result = match Self::validate_group_privacy(
             caller,
             account_identifier,
             post_group.privacy.clone(),
+            temp_group.privacy_gated_type_amount.clone(),
         )
         .await
         {
@@ -821,28 +823,32 @@ impl Store {
         caller: Principal,
         account_identifier: Option<String>,
         privacy: Privacy,
+        privacy_gated_type_amount: Option<u64>,
     ) -> Result<(), ApiError> {
         match privacy {
             Privacy::Public => Ok(()),
             Privacy::Private => Ok(()),
             Privacy::InviteOnly => Ok(()),
             Privacy::Gated(gated_type) => {
-                let mut is_valid = false;
+                let mut is_valid: u64 = 0;
                 use GatedType::*;
                 match gated_type {
                     Neuron(neuron_canisters) => {
                         for neuron_canister in neuron_canisters {
-                            is_valid = Self::validate_neuron_gated(
+                            if Self::validate_neuron_gated(
                                 caller,
                                 neuron_canister.governance_canister,
                                 neuron_canister.rules,
                             )
-                            .await;
-                            if is_valid {
+                            .await
+                            {
+                                is_valid += 1;
+                            }
+                            if is_valid >= privacy_gated_type_amount.unwrap_or_default() {
                                 break;
                             }
                         }
-                        if is_valid {
+                        if is_valid >= privacy_gated_type_amount.unwrap_or_default() {
                             Ok(())
                             // If the caller does not own the neuron, throw an error
                         } else {
@@ -861,19 +867,22 @@ impl Store {
                     Token(nft_canisters) => {
                         // Loop over the canisters and check if the caller owns a specific NFT (inter-canister call)
                         for nft_canister in nft_canisters {
-                            is_valid = Self::validate_nft_gated(
+                            if Self::validate_nft_gated(
                                 caller,
                                 account_identifier.clone(),
-                                nft_canister,
+                                &nft_canister,
                             )
-                            .await;
-                            if is_valid {
+                            .await
+                            {
+                                is_valid += 1;
+                            }
+                            if is_valid >= privacy_gated_type_amount.unwrap_or_default() {
                                 break;
                             }
                         }
-                        if is_valid {
+                        if is_valid >= privacy_gated_type_amount.unwrap_or_default() {
                             Ok(())
-                            // If the caller does not own the NFT, throw an error
+                            // If the caller does not own the neuron, throw an error
                         } else {
                             return Err(api_error(
                                 ApiErrorType::Unauthorized,
@@ -896,7 +905,7 @@ impl Store {
     pub async fn validate_nft_gated(
         principal: Principal,
         account_identifier: Option<String>,
-        nft_canister: TokenGated,
+        nft_canister: &TokenGated,
     ) -> bool {
         // Check if the canister is a EXT, DIP20 or DIP721 canister
         match nft_canister.standard.as_str() {

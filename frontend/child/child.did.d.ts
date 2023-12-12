@@ -74,6 +74,7 @@ export interface Group {
   'wallets' : Array<[Principal, string]>,
   'image' : Asset,
   'member_count' : Array<[Principal, bigint]>,
+  'privacy_gated_type_amount' : [] | [bigint],
   'location' : Location,
   'roles' : Array<GroupRole>,
   'is_deleted' : boolean,
@@ -180,6 +181,7 @@ export interface PostGroup {
   'website' : string,
   'privacy' : Privacy,
   'image' : Asset,
+  'privacy_gated_type_amount' : [] | [bigint],
   'location' : Location,
 }
 export interface PostPermission {
