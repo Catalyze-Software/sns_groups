@@ -554,9 +554,9 @@ dependencies = [
 
 [[package]]
 name = "ic_scalable_canister"
-version = "0.3.0-beta.13"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91c8184afed4d225b13c720f837fe13861b42991e11e242a74a2e980228fd92c"
+checksum = "925d7629a8fe0f39a893f0b9e6d3c8a4898a88389ba93be29898fe3df86fd635"
 dependencies = [
  "candid",
  "ciborium",
@@ -570,9 +570,9 @@ dependencies = [
 
 [[package]]
 name = "ic_scalable_misc"
-version = "1.0.1-beta.4"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bda0d3b4ab43819e58f2bdfbbfa624d983ac15d56b6f5103e577f60f3d3efa6"
+checksum = "6305a5d5eda7d42ac1dfb0e76475894247cac587e84088d951442cc88f159fe4"
 dependencies = [
  "base64",
  "bincode",

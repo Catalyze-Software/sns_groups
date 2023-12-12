@@ -105,6 +105,7 @@ export const idlFactory = ({ IDL }) => {
     'website' : IDL.Text,
     'privacy' : Privacy,
     'image' : Asset,
+    'privacy_gated_type_amount' : IDL.Opt(IDL.Nat64),
     'location' : Location,
   });
   const PermissionActions = IDL.Record({
@@ -162,6 +163,7 @@ export const idlFactory = ({ IDL }) => {
     'wallets' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Text)),
     'image' : Asset,
     'member_count' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat64)),
+    'privacy_gated_type_amount' : IDL.Opt(IDL.Nat64),
     'location' : Location,
     'roles' : IDL.Vec(GroupRole),
     'is_deleted' : IDL.Bool,

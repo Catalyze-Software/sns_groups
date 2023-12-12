@@ -24,6 +24,7 @@ pub struct Group {
     pub image: Asset,
     pub banner_image: Asset,
     pub tags: Vec<u32>,
+    pub privacy_gated_type_amount: Option<u64>,
     pub roles: Vec<GroupRole>,
     pub is_deleted: bool,
     pub member_count: HashMap<Principal, usize>,
@@ -66,6 +67,7 @@ impl Default for Group {
             is_deleted: Default::default(),
             updated_on: Default::default(),
             created_on: Default::default(),
+            privacy_gated_type_amount: Default::default(),
         }
     }
 }
@@ -78,6 +80,7 @@ pub struct PostGroup {
     pub matrix_space_id: String,
     pub location: Location,
     pub privacy: Privacy,
+    pub privacy_gated_type_amount: Option<u64>,
     pub image: Asset,
     pub banner_image: Asset,
     pub tags: Vec<u32>,

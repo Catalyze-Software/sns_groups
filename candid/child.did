@@ -50,6 +50,7 @@ type Group = record {
   wallets : vec record { principal; text };
   image : Asset;
   member_count : vec record { principal; nat64 };
+  privacy_gated_type_amount : opt nat64;
   location : Location;
   roles : vec GroupRole;
   is_deleted : bool;
@@ -161,6 +162,7 @@ type PostGroup = record {
   website : text;
   privacy : Privacy;
   image : Asset;
+  privacy_gated_type_amount : opt nat64;
   location : Location;
 };
 type PostPermission = record { name : text; actions : PermissionActions };
