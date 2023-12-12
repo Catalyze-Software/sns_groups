@@ -1,5 +1,14 @@
 use candid::{export_service, Principal};
-use ic_cdk::{caller, init, query, update};
+use ic_cdk::{
+    api::{
+        call::RejectionCode,
+        management_canister::{
+            main::{canister_status as _canister_status, CanisterStatusResponse},
+            provisional::CanisterIdRecord,
+        },
+    },
+    caller, id, init, query, update,
+};
 use ic_scalable_canister::ic_scalable_misc::{
     enums::api_error_type::ApiError,
     models::http_models::{HttpRequest, HttpResponse},
@@ -80,4 +89,18 @@ pub fn init(parent: Principal, name: String, identifier: usize) {
 pub fn candid() {
     use ic_scalable_canister::ic_scalable_misc::helpers::candid_helper::save_candid;
     save_candid(__export_did_tmp_(), String::from("child"));
+}
+
+#[update(guard = "is_monitor")]
+async fn canister_status() -> Result<(CanisterStatusResponse,), (RejectionCode, String)> {
+    _canister_status(CanisterIdRecord { canister_id: id() }).await
+}
+
+pub fn is_monitor() -> Result<(), String> {
+    const OWNERS: [&str; 1] = ["6or45-oyaaa-aaaap-absua-cai"];
+
+    match OWNERS.iter().any(|p| p == &caller().to_string()) {
+        true => Ok(()),
+        false => Err("Unauthorized".to_string()),
+    }
 }

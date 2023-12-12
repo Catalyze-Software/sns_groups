@@ -20,6 +20,15 @@ type ApiError = variant {
   BadRequest : ErrorMessage;
 };
 type Asset = variant { Url : text; None; CanisterStorage : CanisterStorage };
+type CanisterStatusResponse = record {
+  status : CanisterStatusType;
+  memory_size : nat;
+  cycles : nat;
+  settings : DefiniteCanisterSettings;
+  idle_cycles_burned_per_day : nat;
+  module_hash : opt vec nat8;
+};
+type CanisterStatusType = variant { stopped; stopping; running };
 type CanisterStorage = variant { None; Manifest : Manifest; Chunk : ChunkData };
 type ChunkData = record {
   chunk_id : nat64;
@@ -27,6 +36,12 @@ type ChunkData = record {
   index : nat64;
 };
 type DateRange = record { end_date : nat64; start_date : nat64 };
+type DefiniteCanisterSettings = record {
+  freezing_threshold : nat;
+  controllers : vec principal;
+  memory_allocation : nat;
+  compute_allocation : nat;
+};
 type ErrorMessage = record {
   tag : text;
   message : text;
@@ -165,15 +180,28 @@ type PostGroup = record {
 };
 type PostPermission = record { name : text; actions : PermissionActions };
 type Privacy = variant { Gated : GatedType; Private; Public; InviteOnly };
+type RejectionCode = variant {
+  NoError;
+  CanisterError;
+  SysTransient;
+  DestinationInvalid;
+  Unknown;
+  SysFatal;
+  CanisterReject;
+};
 type Result = variant { Ok; Err : ApiError };
 type Result_1 = variant { Ok : GroupResponse; Err : ApiError };
 type Result_2 = variant { Ok : GroupRole; Err : ApiError };
-type Result_3 = variant { Ok : Group; Err : ApiError };
-type Result_4 = variant { Ok : bool; Err : ApiError };
-type Result_5 = variant { Ok : record { principal; Privacy }; Err : ApiError };
-type Result_6 = variant { Ok : PagedResponse; Err : ApiError };
-type Result_7 = variant { Ok : vec GroupResponse; Err : ApiError };
-type Result_8 = variant { Ok; Err : bool };
+type Result_3 = variant {
+  Ok : record { CanisterStatusResponse };
+  Err : record { RejectionCode; text };
+};
+type Result_4 = variant { Ok : Group; Err : ApiError };
+type Result_5 = variant { Ok : bool; Err : ApiError };
+type Result_6 = variant { Ok : record { principal; Privacy }; Err : ApiError };
+type Result_7 = variant { Ok : PagedResponse; Err : ApiError };
+type Result_8 = variant { Ok : vec GroupResponse; Err : ApiError };
+type Result_9 = variant { Ok; Err : bool };
 type SortDirection = variant { Asc; Desc };
 type TokenGated = record {
   "principal" : principal;
@@ -201,12 +229,13 @@ service : (principal, text, nat64) -> {
   add_group : (PostGroup, principal, opt text) -> (Result_1);
   add_role : (principal, text, text, nat64, principal) -> (Result_2);
   add_wallet : (principal, principal, text) -> (Result);
+  canister_status : () -> (Result_3);
   clear_backup : () -> ();
-  delete_group : (principal, principal) -> (Result_3);
+  delete_group : (principal, principal) -> (Result_4);
   download_chunk : (nat64) -> (record { nat64; vec nat8 }) query;
   edit_group : (principal, UpdateGroup, principal) -> (Result_1);
   edit_role_permissions : (principal, text, vec PostPermission, principal) -> (
-      Result_4,
+      Result_5,
     );
   finalize_upload : () -> (text);
   get_chunked_data : (vec GroupFilter, FilterType, nat64, nat64) -> (
@@ -214,17 +243,17 @@ service : (principal, text, nat64) -> {
       record { nat64; nat64 },
     ) query;
   get_group : (principal) -> (Result_1) query;
-  get_group_owner_and_privacy : (principal) -> (Result_5) query;
+  get_group_owner_and_privacy : (principal) -> (Result_6) query;
   get_group_roles : (principal) -> (vec GroupRole) query;
   get_groups : (nat64, nat64, vec GroupFilter, FilterType, GroupSort, bool) -> (
-      Result_6,
+      Result_7,
     ) query;
-  get_groups_by_id : (vec principal) -> (Result_7) query;
+  get_groups_by_id : (vec principal) -> (Result_8) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
-  remove_role : (principal, text, principal) -> (Result_4);
+  remove_role : (principal, text, principal) -> (Result_5);
   remove_wallet : (principal, principal) -> (Result);
   restore_data : () -> ();
   total_chunks : () -> (nat64) query;
-  update_member_count : (principal, principal, nat64) -> (Result_8);
+  update_member_count : (principal, principal, nat64) -> (Result_9);
   upload_chunk : (record { nat64; vec nat8 }) -> ();
 }
