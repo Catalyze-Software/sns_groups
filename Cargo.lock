@@ -122,12 +122,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo-husky"
-version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff53a43d6ff777f3313a2db46b385907fdafb34efb3d6c40ded912e5e410c7a7"
-
-[[package]]
 name = "cc"
 version = "1.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -427,16 +421,6 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
-]
-
-[[package]]
-name = "group"
-version = "0.1.0"
-dependencies = [
- "cargo-husky",
- "child",
- "parent",
- "shared",
 ]
 
 [[package]]
