@@ -1,12 +1,14 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
-use candid::{CandidType, Deserialize, Principal};
+use candid::{CandidType, Decode, Deserialize, Encode, Principal};
 use ic_scalable_misc::{
     enums::{
         asset_type::Asset, location_type::Location, privacy_type::Privacy, sort_type::SortDirection,
     },
     models::{date_models::DateRange, group_role::GroupRole},
+    traits::stable_storage_trait::StableStorableTrait,
 };
+use ic_stable_structures::{storable::Bound, Storable};
 use serde::Serialize;
 
 #[derive(Clone, CandidType, Serialize, Deserialize, Debug)]
@@ -22,12 +24,27 @@ pub struct Group {
     pub image: Asset,
     pub banner_image: Asset,
     pub tags: Vec<u32>,
+    pub privacy_gated_type_amount: Option<u64>,
     pub roles: Vec<GroupRole>,
     pub is_deleted: bool,
     pub member_count: HashMap<Principal, usize>,
     pub wallets: HashMap<Principal, String>,
     pub updated_on: u64,
     pub created_on: u64,
+}
+
+impl StableStorableTrait for Group {}
+
+impl Storable for Group {
+    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+
+    const BOUND: Bound = Bound::Unbounded;
 }
 
 impl Default for Group {
@@ -50,6 +67,7 @@ impl Default for Group {
             is_deleted: Default::default(),
             updated_on: Default::default(),
             created_on: Default::default(),
+            privacy_gated_type_amount: Default::default(),
         }
     }
 }
@@ -62,6 +80,7 @@ pub struct PostGroup {
     pub matrix_space_id: String,
     pub location: Location,
     pub privacy: Privacy,
+    pub privacy_gated_type_amount: Option<u64>,
     pub image: Asset,
     pub banner_image: Asset,
     pub tags: Vec<u32>,

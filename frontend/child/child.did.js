@@ -105,6 +105,7 @@ export const idlFactory = ({ IDL }) => {
     'website' : IDL.Text,
     'privacy' : Privacy,
     'image' : Asset,
+    'privacy_gated_type_amount' : IDL.Opt(IDL.Nat64),
     'location' : Location,
   });
   const PermissionActions = IDL.Record({
@@ -147,6 +148,38 @@ export const idlFactory = ({ IDL }) => {
   });
   const Result_1 = IDL.Variant({ 'Ok' : GroupResponse, 'Err' : ApiError });
   const Result_2 = IDL.Variant({ 'Ok' : GroupRole, 'Err' : ApiError });
+  const CanisterStatusType = IDL.Variant({
+    'stopped' : IDL.Null,
+    'stopping' : IDL.Null,
+    'running' : IDL.Null,
+  });
+  const DefiniteCanisterSettings = IDL.Record({
+    'freezing_threshold' : IDL.Nat,
+    'controllers' : IDL.Vec(IDL.Principal),
+    'memory_allocation' : IDL.Nat,
+    'compute_allocation' : IDL.Nat,
+  });
+  const CanisterStatusResponse = IDL.Record({
+    'status' : CanisterStatusType,
+    'memory_size' : IDL.Nat,
+    'cycles' : IDL.Nat,
+    'settings' : DefiniteCanisterSettings,
+    'idle_cycles_burned_per_day' : IDL.Nat,
+    'module_hash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+  });
+  const RejectionCode = IDL.Variant({
+    'NoError' : IDL.Null,
+    'CanisterError' : IDL.Null,
+    'SysTransient' : IDL.Null,
+    'DestinationInvalid' : IDL.Null,
+    'Unknown' : IDL.Null,
+    'SysFatal' : IDL.Null,
+    'CanisterReject' : IDL.Null,
+  });
+  const Result_3 = IDL.Variant({
+    'Ok' : IDL.Tuple(CanisterStatusResponse),
+    'Err' : IDL.Tuple(RejectionCode, IDL.Text),
+  });
   const Group = IDL.Record({
     'updated_on' : IDL.Nat64,
     'banner_image' : Asset,
@@ -162,11 +195,12 @@ export const idlFactory = ({ IDL }) => {
     'wallets' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Text)),
     'image' : Asset,
     'member_count' : IDL.Vec(IDL.Tuple(IDL.Principal, IDL.Nat64)),
+    'privacy_gated_type_amount' : IDL.Opt(IDL.Nat64),
     'location' : Location,
     'roles' : IDL.Vec(GroupRole),
     'is_deleted' : IDL.Bool,
   });
-  const Result_3 = IDL.Variant({ 'Ok' : Group, 'Err' : ApiError });
+  const Result_4 = IDL.Variant({ 'Ok' : Group, 'Err' : ApiError });
   const UpdateGroup = IDL.Record({
     'banner_image' : Asset,
     'name' : IDL.Text,
@@ -181,7 +215,7 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'actions' : PermissionActions,
   });
-  const Result_4 = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ApiError });
+  const Result_5 = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ApiError });
   const DateRange = IDL.Record({
     'end_date' : IDL.Nat64,
     'start_date' : IDL.Nat64,
@@ -196,7 +230,7 @@ export const idlFactory = ({ IDL }) => {
     'CreatedOn' : DateRange,
   });
   const FilterType = IDL.Variant({ 'Or' : IDL.Null, 'And' : IDL.Null });
-  const Result_5 = IDL.Variant({
+  const Result_6 = IDL.Variant({
     'Ok' : IDL.Tuple(IDL.Principal, Privacy),
     'Err' : ApiError,
   });
@@ -214,8 +248,8 @@ export const idlFactory = ({ IDL }) => {
     'limit' : IDL.Nat64,
     'number_of_pages' : IDL.Nat64,
   });
-  const Result_6 = IDL.Variant({ 'Ok' : PagedResponse, 'Err' : ApiError });
-  const Result_7 = IDL.Variant({
+  const Result_7 = IDL.Variant({ 'Ok' : PagedResponse, 'Err' : ApiError });
+  const Result_8 = IDL.Variant({
     'Ok' : IDL.Vec(GroupResponse),
     'Err' : ApiError,
   });
@@ -231,7 +265,7 @@ export const idlFactory = ({ IDL }) => {
     'body' : IDL.Vec(IDL.Nat8),
     'headers' : IDL.Vec(HttpHeader),
   });
-  const Result_8 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Bool });
+  const Result_9 = IDL.Variant({ 'Ok' : IDL.Null, 'Err' : IDL.Bool });
   return IDL.Service({
     '__get_candid_interface_tmp_hack' : IDL.Func([], [IDL.Text], ['query']),
     'accept_cycles' : IDL.Func([], [IDL.Nat64], []),
@@ -251,9 +285,9 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
-    'backup_data' : IDL.Func([], [IDL.Text], []),
+    'canister_status' : IDL.Func([], [Result_3], []),
     'clear_backup' : IDL.Func([], [], []),
-    'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_3], []),
+    'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_4], []),
     'download_chunk' : IDL.Func(
         [IDL.Nat64],
         [IDL.Tuple(IDL.Nat64, IDL.Vec(IDL.Nat8))],
@@ -266,7 +300,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'edit_role_permissions' : IDL.Func(
         [IDL.Principal, IDL.Text, IDL.Vec(PostPermission), IDL.Principal],
-        [Result_4],
+        [Result_5],
         [],
       ),
     'finalize_upload' : IDL.Func([], [IDL.Text], []),
@@ -278,7 +312,7 @@ export const idlFactory = ({ IDL }) => {
     'get_group' : IDL.Func([IDL.Principal], [Result_1], ['query']),
     'get_group_owner_and_privacy' : IDL.Func(
         [IDL.Principal],
-        [Result_5],
+        [Result_6],
         ['query'],
       ),
     'get_group_roles' : IDL.Func(
@@ -295,23 +329,18 @@ export const idlFactory = ({ IDL }) => {
           GroupSort,
           IDL.Bool,
         ],
-        [Result_6],
+        [Result_7],
         ['query'],
       ),
     'get_groups_by_id' : IDL.Func(
         [IDL.Vec(IDL.Principal)],
-        [Result_7],
+        [Result_8],
         ['query'],
       ),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
-    'migration_add_groups' : IDL.Func(
-        [IDL.Vec(IDL.Tuple(IDL.Principal, Group))],
-        [],
-        [],
-      ),
     'remove_role' : IDL.Func(
         [IDL.Principal, IDL.Text, IDL.Principal],
-        [Result_4],
+        [Result_5],
         [],
       ),
     'remove_wallet' : IDL.Func([IDL.Principal, IDL.Principal], [Result], []),
@@ -319,7 +348,7 @@ export const idlFactory = ({ IDL }) => {
     'total_chunks' : IDL.Func([], [IDL.Nat64], ['query']),
     'update_member_count' : IDL.Func(
         [IDL.Principal, IDL.Principal, IDL.Nat64],
-        [Result_8],
+        [Result_9],
         [],
       ),
     'upload_chunk' : IDL.Func(

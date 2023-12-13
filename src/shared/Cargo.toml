@@ -10,6 +10,7 @@ path = "src/lib.rs"
 crate-type = ["lib"]
 
 [dependencies]
-candid = "0.8.2"
-ic_scalable_misc = "0.2.51"
+candid = "0.9.8"
+ic_scalable_misc = "1.0.1-beta.2"
 serde = "1.0"
+ic-stable-structures = "0.6.0"
