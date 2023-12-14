@@ -95,6 +95,7 @@ type GroupResponse = record {
   image : Asset;
   identifier : principal;
   member_count : nat64;
+  privacy_gated_type_amount : opt nat64;
   location : Location;
   roles : vec GroupRole;
   is_deleted : bool;
@@ -220,6 +221,7 @@ type UpdateGroup = record {
   website : text;
   privacy : Privacy;
   image : Asset;
+  privacy_gated_type_amount : opt nat64;
   location : Location;
 };
 type UpdateMessage = record { canister_principal : principal; message : text };
