@@ -200,6 +200,8 @@ impl Store {
                         _group_data.privacy = update_group.privacy;
                         _group_data.image = update_group.image;
                         _group_data.banner_image = update_group.banner_image;
+                        _group_data.privacy_gated_type_amount =
+                            update_group.privacy_gated_type_amount;
                         _group_data.tags = update_group.tags;
                         _group_data.updated_on = time();
 
@@ -1304,6 +1306,7 @@ impl Store {
             roles,
             member_count: group.member_count.into_iter().map(|(_, value)| value).sum(),
             is_deleted: group.is_deleted,
+            privacy_gated_type_amount: group.privacy_gated_type_amount,
             updated_on: group.updated_on,
             created_on: group.created_on,
         }
