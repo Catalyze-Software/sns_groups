@@ -1,0 +1,13 @@
+#!/bin/sh
+
+echo "Checking branch naming rule!"
+
+BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+
+BRANCH_REGEX='^(feature|fix|hotfix|release)/.+'
+
+# Check if the branch name matches the defined regex
+if ! [[ $BRANCH_NAME =~ $BRANCH_REGEX ]]; then
+   echo "Error: Branch name must start with feature/, fix/, hotfix/ or release/"	
+   exit 1
+fi

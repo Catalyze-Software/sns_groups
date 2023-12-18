@@ -6,10 +6,12 @@ canisters=(
 )
 
 echo -e "${GREEN}> $ENV: Generating required files..${NC}"
-cargo test --test generate
 dfx generate --network ic
 
 for t in ${canisters[@]}; do
+    
+    echo -e "${GREEN} $ENV > Generating candid for $t..${NC}"
+    cargo test candid -p $t
     echo -e "${GREEN} $ENV > Building $t..${NC}"
     dfx build --network ic $t
 

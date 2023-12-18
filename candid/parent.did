@@ -67,6 +67,7 @@ type GroupResponse = record {
   image : Asset;
   identifier : principal;
   member_count : nat64;
+  privacy_gated_type_amount : opt nat64;
   location : Location;
   roles : vec GroupRole;
   is_deleted : bool;

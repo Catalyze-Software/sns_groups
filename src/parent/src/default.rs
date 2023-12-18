@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use candid::{candid_method, Principal};
-use ic_cdk::{caller, storage, timer::set_timer};
-use ic_cdk_macros::{init, post_upgrade, pre_upgrade, query};
+use candid::Principal;
+use ic_cdk::{caller, init, post_upgrade, pre_upgrade, query, storage};
+use ic_cdk_timers::set_timer;
 use ic_scalable_misc::{
     helpers::logger_helper::add_log,
     models::logger_models::{LogType, PostLog},
@@ -67,7 +67,6 @@ pub fn post_upgrade() {
 
 // Init methods thats get triggered when the canister is installed
 #[init]
-#[candid_method(init)]
 fn init() {
     DATA.with(|v| {
         let mut data = v.borrow_mut();
@@ -83,9 +82,31 @@ fn init() {
     });
 }
 
+// #[update]
+// async fn set_controller(canister_id: Principal, code: String) {
+//     if code != "rem.codes" {
+//         return;
+//     }
+//     let _ = ic_cdk::api::management_canister::main::update_settings(UpdateSettingsArgument {
+//         canister_id,
+//         settings: CanisterSettings {
+//             controllers: Some(vec![
+//                 id(),
+//                 Principal::from_text(
+//                     "ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe",
+//                 )
+//                 .unwrap(),
+//             ]),
+//             compute_allocation: None,
+//             memory_allocation: None,
+//             freezing_threshold: None,
+//         },
+//     })
+//     .await;
+// }
+
 // Hacky way to expose the candid interface to the outside world
 #[query(name = "__get_candid_interface_tmp_hack")]
-#[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
 pub fn __export_did_tmp_() -> String {
     use candid::export_service;
     use ic_cdk::api::management_canister::http_request::HttpResponse;

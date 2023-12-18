@@ -23,6 +23,17 @@ export type ApiError = { 'SerializeError' : ErrorMessage } |
 export type Asset = { 'Url' : string } |
   { 'None' : null } |
   { 'CanisterStorage' : CanisterStorage };
+export interface CanisterStatusResponse {
+  'status' : CanisterStatusType,
+  'memory_size' : bigint,
+  'cycles' : bigint,
+  'settings' : DefiniteCanisterSettings,
+  'idle_cycles_burned_per_day' : bigint,
+  'module_hash' : [] | [Uint8Array | number[]],
+}
+export type CanisterStatusType = { 'stopped' : null } |
+  { 'stopping' : null } |
+  { 'running' : null };
 export type CanisterStorage = { 'None' : null } |
   { 'Manifest' : Manifest } |
   { 'Chunk' : ChunkData };
@@ -32,6 +43,12 @@ export interface ChunkData {
   'index' : bigint,
 }
 export interface DateRange { 'end_date' : bigint, 'start_date' : bigint }
+export interface DefiniteCanisterSettings {
+  'freezing_threshold' : bigint,
+  'controllers' : Array<Principal>,
+  'memory_allocation' : bigint,
+  'compute_allocation' : bigint,
+}
 export interface ErrorMessage {
   'tag' : string,
   'message' : string,
@@ -57,6 +74,7 @@ export interface Group {
   'wallets' : Array<[Principal, string]>,
   'image' : Asset,
   'member_count' : Array<[Principal, bigint]>,
+  'privacy_gated_type_amount' : [] | [bigint],
   'location' : Location,
   'roles' : Array<GroupRole>,
   'is_deleted' : boolean,
@@ -163,6 +181,7 @@ export interface PostGroup {
   'website' : string,
   'privacy' : Privacy,
   'image' : Asset,
+  'privacy_gated_type_amount' : [] | [bigint],
   'location' : Location,
 }
 export interface PostPermission {
@@ -173,23 +192,32 @@ export type Privacy = { 'Gated' : GatedType } |
   { 'Private' : null } |
   { 'Public' : null } |
   { 'InviteOnly' : null };
+export type RejectionCode = { 'NoError' : null } |
+  { 'CanisterError' : null } |
+  { 'SysTransient' : null } |
+  { 'DestinationInvalid' : null } |
+  { 'Unknown' : null } |
+  { 'SysFatal' : null } |
+  { 'CanisterReject' : null };
 export type Result = { 'Ok' : null } |
   { 'Err' : ApiError };
 export type Result_1 = { 'Ok' : GroupResponse } |
   { 'Err' : ApiError };
 export type Result_2 = { 'Ok' : GroupRole } |
   { 'Err' : ApiError };
-export type Result_3 = { 'Ok' : Group } |
+export type Result_3 = { 'Ok' : [CanisterStatusResponse] } |
+  { 'Err' : [RejectionCode, string] };
+export type Result_4 = { 'Ok' : Group } |
   { 'Err' : ApiError };
-export type Result_4 = { 'Ok' : boolean } |
+export type Result_5 = { 'Ok' : boolean } |
   { 'Err' : ApiError };
-export type Result_5 = { 'Ok' : [Principal, Privacy] } |
+export type Result_6 = { 'Ok' : [Principal, Privacy] } |
   { 'Err' : ApiError };
-export type Result_6 = { 'Ok' : PagedResponse } |
+export type Result_7 = { 'Ok' : PagedResponse } |
   { 'Err' : ApiError };
-export type Result_7 = { 'Ok' : Array<GroupResponse> } |
+export type Result_8 = { 'Ok' : Array<GroupResponse> } |
   { 'Err' : ApiError };
-export type Result_8 = { 'Ok' : null } |
+export type Result_9 = { 'Ok' : null } |
   { 'Err' : boolean };
 export type SortDirection = { 'Asc' : null } |
   { 'Desc' : null };
@@ -225,14 +253,14 @@ export interface _SERVICE {
     Result_2
   >,
   'add_wallet' : ActorMethod<[Principal, Principal, string], Result>,
-  'backup_data' : ActorMethod<[], string>,
+  'canister_status' : ActorMethod<[], Result_3>,
   'clear_backup' : ActorMethod<[], undefined>,
-  'delete_group' : ActorMethod<[Principal, Principal], Result_3>,
+  'delete_group' : ActorMethod<[Principal, Principal], Result_4>,
   'download_chunk' : ActorMethod<[bigint], [bigint, Uint8Array | number[]]>,
   'edit_group' : ActorMethod<[Principal, UpdateGroup, Principal], Result_1>,
   'edit_role_permissions' : ActorMethod<
     [Principal, string, Array<PostPermission>, Principal],
-    Result_4
+    Result_5
   >,
   'finalize_upload' : ActorMethod<[], string>,
   'get_chunked_data' : ActorMethod<
@@ -240,19 +268,18 @@ export interface _SERVICE {
     [Uint8Array | number[], [bigint, bigint]]
   >,
   'get_group' : ActorMethod<[Principal], Result_1>,
-  'get_group_owner_and_privacy' : ActorMethod<[Principal], Result_5>,
+  'get_group_owner_and_privacy' : ActorMethod<[Principal], Result_6>,
   'get_group_roles' : ActorMethod<[Principal], Array<GroupRole>>,
   'get_groups' : ActorMethod<
     [bigint, bigint, Array<GroupFilter>, FilterType, GroupSort, boolean],
-    Result_6
+    Result_7
   >,
-  'get_groups_by_id' : ActorMethod<[Array<Principal>], Result_7>,
+  'get_groups_by_id' : ActorMethod<[Array<Principal>], Result_8>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
-  'migration_add_groups' : ActorMethod<[Array<[Principal, Group]>], undefined>,
-  'remove_role' : ActorMethod<[Principal, string, Principal], Result_4>,
+  'remove_role' : ActorMethod<[Principal, string, Principal], Result_5>,
   'remove_wallet' : ActorMethod<[Principal, Principal], Result>,
   'restore_data' : ActorMethod<[], undefined>,
   'total_chunks' : ActorMethod<[], bigint>,
-  'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_8>,
+  'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_9>,
   'upload_chunk' : ActorMethod<[[bigint, Uint8Array | number[]]], undefined>,
 }

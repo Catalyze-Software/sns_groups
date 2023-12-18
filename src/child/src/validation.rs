@@ -1,4 +1,4 @@
-use ic_scalable_misc::{
+use ic_scalable_canister::ic_scalable_misc::{
     enums::{api_error_type::ApiError, validation_type::ValidationType},
     helpers::validation_helper::Validator,
     models::validation_models::ValidateField,
@@ -13,7 +13,7 @@ pub fn validate_post_group(post_group: PostGroup) -> Result<(), ApiError> {
             "name".to_string(),
         ),
         ValidateField(
-            ValidationType::StringLength(post_group.description, 0, 1000),
+            ValidationType::StringLength(post_group.description, 0, 2500),
             "description".to_string(),
         ),
         ValidateField(
@@ -36,7 +36,7 @@ pub fn validate_update_group(update_group: UpdateGroup) -> Result<(), ApiError> 
             "name".to_string(),
         ),
         ValidateField(
-            ValidationType::StringLength(update_group.description, 0, 1000),
+            ValidationType::StringLength(update_group.description, 0, 2500),
             "description".to_string(),
         ),
         ValidateField(
