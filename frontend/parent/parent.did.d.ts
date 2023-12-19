@@ -70,6 +70,7 @@ export interface GroupResponse {
   'image' : Asset,
   'identifier' : Principal,
   'member_count' : bigint,
+  'privacy_gated_type_amount' : [] | [bigint],
   'location' : Location,
   'roles' : Array<GroupRole>,
   'is_deleted' : boolean,

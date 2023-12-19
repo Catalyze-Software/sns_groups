@@ -102,6 +102,7 @@ export interface GroupResponse {
   'image' : Asset,
   'identifier' : Principal,
   'member_count' : bigint,
+  'privacy_gated_type_amount' : [] | [bigint],
   'location' : Location,
   'roles' : Array<GroupRole>,
   'is_deleted' : boolean,
@@ -236,6 +237,7 @@ export interface UpdateGroup {
   'website' : string,
   'privacy' : Privacy,
   'image' : Asset,
+  'privacy_gated_type_amount' : [] | [bigint],
   'location' : Location,
 }
 export interface UpdateMessage {
@@ -253,10 +255,19 @@ export interface _SERVICE {
     Result_2
   >,
   'add_wallet' : ActorMethod<[Principal, Principal, string], Result>,
+  'canister_backup_data' : ActorMethod<[], [string, string]>,
   'canister_status' : ActorMethod<[], Result_3>,
   'clear_backup' : ActorMethod<[], undefined>,
   'delete_group' : ActorMethod<[Principal, Principal], Result_4>,
   'download_chunk' : ActorMethod<[bigint], [bigint, Uint8Array | number[]]>,
+  'download_entries_chunk' : ActorMethod<
+    [bigint],
+    [bigint, Uint8Array | number[]]
+  >,
+  'download_stable_data_chunk' : ActorMethod<
+    [bigint],
+    [bigint, Uint8Array | number[]]
+  >,
   'edit_group' : ActorMethod<[Principal, UpdateGroup, Principal], Result_1>,
   'edit_role_permissions' : ActorMethod<
     [Principal, string, Array<PostPermission>, Principal],
@@ -280,6 +291,8 @@ export interface _SERVICE {
   'remove_wallet' : ActorMethod<[Principal, Principal], Result>,
   'restore_data' : ActorMethod<[], undefined>,
   'total_chunks' : ActorMethod<[], bigint>,
+  'total_entries_chunks' : ActorMethod<[], bigint>,
+  'total_stable_data_chunks' : ActorMethod<[], bigint>,
   'update_member_count' : ActorMethod<[Principal, Principal, bigint], Result_9>,
   'upload_chunk' : ActorMethod<[[bigint, Uint8Array | number[]]], undefined>,
 }
