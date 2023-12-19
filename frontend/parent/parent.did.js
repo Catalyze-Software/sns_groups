@@ -175,6 +175,7 @@ export const idlFactory = ({ IDL }) => {
     'image' : Asset,
     'identifier' : IDL.Principal,
     'member_count' : IDL.Nat64,
+    'privacy_gated_type_amount' : IDL.Opt(IDL.Nat64),
     'location' : Location,
     'roles' : IDL.Vec(GroupRole),
     'is_deleted' : IDL.Bool,

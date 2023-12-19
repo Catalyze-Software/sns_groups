@@ -142,6 +142,7 @@ export const idlFactory = ({ IDL }) => {
     'image' : Asset,
     'identifier' : IDL.Principal,
     'member_count' : IDL.Nat64,
+    'privacy_gated_type_amount' : IDL.Opt(IDL.Nat64),
     'location' : Location,
     'roles' : IDL.Vec(GroupRole),
     'is_deleted' : IDL.Bool,
@@ -209,6 +210,7 @@ export const idlFactory = ({ IDL }) => {
     'website' : IDL.Text,
     'privacy' : Privacy,
     'image' : Asset,
+    'privacy_gated_type_amount' : IDL.Opt(IDL.Nat64),
     'location' : Location,
   });
   const PostPermission = IDL.Record({
@@ -285,10 +287,21 @@ export const idlFactory = ({ IDL }) => {
         [Result],
         [],
       ),
+    'canister_backup_data' : IDL.Func([], [IDL.Text, IDL.Text], []),
     'canister_status' : IDL.Func([], [Result_3], []),
     'clear_backup' : IDL.Func([], [], []),
     'delete_group' : IDL.Func([IDL.Principal, IDL.Principal], [Result_4], []),
     'download_chunk' : IDL.Func(
+        [IDL.Nat64],
+        [IDL.Tuple(IDL.Nat64, IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    'download_entries_chunk' : IDL.Func(
+        [IDL.Nat64],
+        [IDL.Tuple(IDL.Nat64, IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    'download_stable_data_chunk' : IDL.Func(
         [IDL.Nat64],
         [IDL.Tuple(IDL.Nat64, IDL.Vec(IDL.Nat8))],
         ['query'],
@@ -346,6 +359,8 @@ export const idlFactory = ({ IDL }) => {
     'remove_wallet' : IDL.Func([IDL.Principal, IDL.Principal], [Result], []),
     'restore_data' : IDL.Func([], [], []),
     'total_chunks' : IDL.Func([], [IDL.Nat64], ['query']),
+    'total_entries_chunks' : IDL.Func([], [IDL.Nat64], ['query']),
+    'total_stable_data_chunks' : IDL.Func([], [IDL.Nat64], ['query']),
     'update_member_count' : IDL.Func(
         [IDL.Principal, IDL.Principal, IDL.Nat64],
         [Result_9],
