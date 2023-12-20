@@ -22,4 +22,5 @@ for t in ${canisters[@]}; do
 
 done
 
+rm -rf src/declarations
 echo -e "${GREEN} $ENV > Stopping local replica..${NC}"
