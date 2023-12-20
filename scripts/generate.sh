@@ -12,6 +12,7 @@ for t in ${canisters[@]}; do
     
     echo -e "${GREEN} $ENV > Generating candid for $t..${NC}"
     cargo test candid -p $t
+    
     echo -e "${GREEN} $ENV > Building $t..${NC}"
     dfx build --network ic $t
 
@@ -19,9 +20,6 @@ for t in ${canisters[@]}; do
     cp -r target/wasm32-unknown-unknown/release/$t.wasm wasm/$t.wasm
     gzip -c wasm/$t.wasm > wasm/$t.wasm.gz
 
-    mkdir -p frontend/$t
-    cp -a src/declarations/$t frontend
 done
 
-rm -rf src/declarations
 echo -e "${GREEN} $ENV > Stopping local replica..${NC}"
