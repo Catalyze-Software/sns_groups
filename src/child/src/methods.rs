@@ -14,7 +14,7 @@ use super::store::{Store, STABLE_DATA};
 
 // This method is used to add a group to the canister,
 // The method is async because it optionally creates a new canister is created
-#[update]
+#[update(guard = "auth")]
 async fn add_group(
     post_group: PostGroup,
     member_canister: Principal,
@@ -50,7 +50,7 @@ fn get_groups(
 }
 
 // This method is used to edit a group
-#[update]
+#[update(guard = "auth")]
 async fn edit_group(
     group_identifier: Principal,
     update_group: UpdateGroup,
@@ -96,7 +96,7 @@ fn get_groups_by_id(group_identifiers: Vec<Principal>) -> Result<Vec<GroupRespon
 }
 
 // This method is used to (soft) delete a group
-#[update]
+#[update(guard = "auth")]
 async fn delete_group(
     group_identifier: Principal,
     member_identifier: Principal,
@@ -107,7 +107,7 @@ async fn delete_group(
     }
 }
 
-#[update]
+#[update(guard = "auth")]
 pub fn add_wallet(
     group_identifier: Principal,
     wallet_canister: Principal,
@@ -116,7 +116,7 @@ pub fn add_wallet(
     Store::add_wallet(caller(), group_identifier, wallet_canister, description)
 }
 
-#[update]
+#[update(guard = "auth")]
 pub fn remove_wallet(
     group_identifier: Principal,
     wallet_canister: Principal,
@@ -125,7 +125,7 @@ pub fn remove_wallet(
 }
 
 // This method is used to add a custom role to a group
-#[update]
+#[update(guard = "auth")]
 async fn add_role(
     group_identifier: Principal,
     role_name: String,
@@ -140,7 +140,7 @@ async fn add_role(
 }
 
 // This method is used to remove a custom role from a group
-#[update]
+#[update(guard = "auth")]
 async fn remove_role(
     group_identifier: Principal,
     role_name: String,
@@ -159,7 +159,7 @@ fn get_group_roles(group_identifier: Principal) -> Vec<GroupRole> {
 }
 
 // This method is used to update the persmissions of a specific role
-#[update]
+#[update(guard = "auth")]
 async fn edit_role_permissions(
     group_identifier: Principal,
     role_name: String,
@@ -177,7 +177,7 @@ async fn edit_role_permissions(
 // This method is used as an inter canister call to update the member count per canister
 // Member count is used for backend filtering
 // TODO: distinct member_canister and caller
-#[update]
+#[update(guard = "auth")]
 pub fn update_member_count(
     group_identifier: Principal,
     member_canister: Principal,
@@ -187,4 +187,11 @@ pub fn update_member_count(
         return Store::update_member_count(group_identifier, member_canister, member_count);
     }
     return Err(false);
+}
+
+pub fn auth() -> Result<(), String> {
+    match caller() == Principal::anonymous() {
+        true => Err("Unauthorized".to_string()),
+        false => Ok(()),
+    }
 }
