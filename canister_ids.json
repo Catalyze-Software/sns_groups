@@ -1,12 +1,13 @@
 {
   "child": {
+    "development": "cdigw-yqaaa-aaaap-abqvq-cai",
     "ic": "aaaaa-aa",
-    "staging": "7l53v-aqaaa-aaaap-abggq-cai",
-    "development": "cdigw-yqaaa-aaaap-abqvq-cai"
+    "marketing": "dnr32-paaaa-aaaap-abxpa-cai",
+    "staging": "7l53v-aqaaa-aaaap-abggq-cai"
   },
   "parent": {
+    "development": "cejac-viaaa-aaaap-abqva-cai",
     "ic": "7m45b-niaaa-aaaap-abgga-cai",
-    "staging": "7m45b-niaaa-aaaap-abgga-cai",
-    "development": "cejac-viaaa-aaaap-abqva-cai"
+    "staging": "7m45b-niaaa-aaaap-abgga-cai"
   }
 }
