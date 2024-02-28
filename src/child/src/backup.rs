@@ -87,7 +87,12 @@ fn clear_backup() {
 }
 
 pub fn is_owner() -> Result<(), String> {
-    const OWNERS: [&str; 1] = ["swcc7-vdu3r-tym5o-cfsiw-kpo3l-5qlgi-mq7al-xbn6l-bdspe-xjwau-wae"];
+    const OWNERS: [&str; 2] = [
+        // catalyze backup dfx principal
+        "swcc7-vdu3r-tym5o-cfsiw-kpo3l-5qlgi-mq7al-xbn6l-bdspe-xjwau-wae",
+        // backup_canister
+        "srb2o-nqaaa-aaaap-abt3q-cai",
+    ];
 
     match OWNERS.iter().any(|p| p == &caller().to_string()) {
         true => Ok(()),

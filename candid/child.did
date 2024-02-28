@@ -233,10 +233,13 @@ service : (principal, text, nat64) -> {
   add_group : (PostGroup, principal, opt text) -> (Result_1);
   add_role : (principal, text, text, nat64, principal) -> (Result_2);
   add_wallet : (principal, principal, text) -> (Result);
+  canister_backup_data : () -> (text, text);
   canister_status : () -> (Result_3);
   clear_backup : () -> ();
   delete_group : (principal, principal) -> (Result_4);
   download_chunk : (nat64) -> (record { nat64; vec nat8 }) query;
+  download_entries_chunk : (nat64) -> (record { nat64; vec nat8 }) query;
+  download_stable_data_chunk : (nat64) -> (record { nat64; vec nat8 }) query;
   edit_group : (principal, UpdateGroup, principal) -> (Result_1);
   edit_role_permissions : (principal, text, vec PostPermission, principal) -> (
       Result_5,
@@ -258,6 +261,8 @@ service : (principal, text, nat64) -> {
   remove_wallet : (principal, principal) -> (Result);
   restore_data : () -> ();
   total_chunks : () -> (nat64) query;
+  total_entries_chunks : () -> (nat64) query;
+  total_stable_data_chunks : () -> (nat64) query;
   update_member_count : (principal, principal, nat64) -> (Result_9);
   upload_chunk : (record { nat64; vec nat8 }) -> ();
 }
