@@ -97,14 +97,11 @@ fn get_groups_by_id(group_identifiers: Vec<Principal>) -> Result<Vec<GroupRespon
 
 // This method is used to (soft) delete a group
 #[update(guard = "auth")]
-async fn delete_group(
+fn delete_group(
     group_identifier: Principal,
-    member_identifier: Principal,
+    _member_identifier: Principal,
 ) -> Result<Group, ApiError> {
-    match Store::can_delete(caller(), group_identifier, member_identifier).await {
-        Ok(_caller) => Store::delete_group(_caller, group_identifier),
-        Err(err) => Err(err),
-    }
+    Store::delete_group(caller(), group_identifier)
 }
 
 #[update(guard = "auth")]
