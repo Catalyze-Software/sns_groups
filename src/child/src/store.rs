@@ -245,7 +245,7 @@ impl Store {
                             inputs,
                         ));
                     }
-
+                    
                     _group_data.is_deleted = true;
                     _group_data.updated_on = time();
 
