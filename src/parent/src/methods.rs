@@ -1,4 +1,4 @@
-use candid::{candid_method, Principal};
+use candid::Principal;
 use ic_cdk::query;
 use ic_scalable_misc::{
     enums::filter_type::FilterType,
@@ -11,8 +11,8 @@ use super::store::ScalableData;
 
 // Method used to get all the groups from the child canisters filtered, sorted and paged
 // requires composite queries to be released to mainnet
-#[query(composite = true)]
-#[candid_method(query)]
+// #[query(composite = true)]
+#[query]
 async fn get_groups(
     limit: usize,
     page: usize,
@@ -24,14 +24,12 @@ async fn get_groups(
 }
 
 #[query]
-#[candid_method(query)]
 fn decode_identifier(identifier: Principal) -> (u64, String, String) {
     let (_id, _canister, _kind) = Identifier::decode(&identifier);
     (_id, _canister.to_string(), _kind)
 }
 
 #[query]
-#[candid_method(query)]
 fn encode_identifier(id: u64, principal: Principal, kind: String) -> Result<Principal, String> {
     let identifier = Identifier::new(id, principal, kind);
     identifier.unwrap().encode()

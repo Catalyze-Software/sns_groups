@@ -1,10 +1,7 @@
-use std::{collections::HashMap, iter::FromIterator};
+use candid::Principal;
+use ic_cdk::{caller, query, update};
 
-use candid::{candid_method, Principal};
-use ic_cdk::caller;
-use ic_cdk_macros::{query, update};
-
-use ic_scalable_misc::{
+use ic_scalable_canister::ic_scalable_misc::{
     enums::{api_error_type::ApiError, filter_type::FilterType, privacy_type::Privacy},
     models::{
         group_role::GroupRole, paged_response_models::PagedResponse,
@@ -13,26 +10,11 @@ use ic_scalable_misc::{
 };
 use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGroup, UpdateGroup};
 
-use super::store::{Store, DATA};
-
-#[update]
-#[candid_method(update)]
-pub fn migration_add_groups(groups: Vec<(Principal, Group)>) -> () {
-    if caller()
-        == Principal::from_text("ledm3-52ncq-rffuv-6ed44-hg5uo-iicyu-pwkzj-syfva-heo4k-p7itq-aqe")
-            .unwrap()
-    {
-        DATA.with(|data| {
-            data.borrow_mut().current_entry_id = groups.clone().len() as u64;
-            data.borrow_mut().entries = HashMap::from_iter(groups);
-        })
-    }
-}
+use super::store::{Store, STABLE_DATA};
 
 // This method is used to add a group to the canister,
 // The method is async because it optionally creates a new canister is created
-#[update]
-#[candid_method(update)]
+#[update(guard = "auth")]
 async fn add_group(
     post_group: PostGroup,
     member_canister: Principal,
@@ -43,14 +25,12 @@ async fn add_group(
 
 // This method is used to get a group from the canister
 #[query]
-#[candid_method(query)]
 fn get_group(identifier: Principal) -> Result<GroupResponse, ApiError> {
     Store::get_group(identifier)
 }
 
 // This method is used to get groups filtered and sorted with pagination
 #[query]
-#[candid_method(query)]
 fn get_groups(
     limit: usize,
     page: usize,
@@ -70,8 +50,7 @@ fn get_groups(
 }
 
 // This method is used to edit a group
-#[update]
-#[candid_method(update)]
+#[update(guard = "auth")]
 async fn edit_group(
     group_identifier: Principal,
     update_group: UpdateGroup,
@@ -88,14 +67,13 @@ async fn edit_group(
 // Data serialized and send as byte array chunks ` (bytes, (start_chunk, end_chunk)) `
 // The parent canister can then deserialize the data and pass it to the frontend
 #[query]
-#[candid_method(query)]
 fn get_chunked_data(
     filters: Vec<GroupFilter>,
     filter_type: FilterType,
     chunk: usize,
     max_bytes_per_chunk: usize,
 ) -> (Vec<u8>, (usize, usize)) {
-    if caller() != DATA.with(|data| data.borrow().parent) {
+    if STABLE_DATA.with(|data| data.borrow().get().parent != caller()) {
         return (vec![], (0, 0));
     }
 
@@ -105,7 +83,6 @@ fn get_chunked_data(
 // This method is used to get the owner and privacy of a group
 // This is used for inter-canister calls to determine is a user can do a group specific action
 #[query]
-#[candid_method(query)]
 fn get_group_owner_and_privacy(
     group_identifier: Principal,
 ) -> Result<(Principal, Privacy), ApiError> {
@@ -114,24 +91,20 @@ fn get_group_owner_and_privacy(
 
 // Get multiple groups by their identifiers
 #[query]
-#[candid_method(query)]
 fn get_groups_by_id(group_identifiers: Vec<Principal>) -> Result<Vec<GroupResponse>, ApiError> {
     Ok(Store::get_groups_by_id(group_identifiers))
 }
 
 // This method is used to (soft) delete a group
-#[update]
-#[candid_method(update)]
-async fn delete_group(
+#[update(guard = "auth")]
+fn delete_group(
     group_identifier: Principal,
-    member_identifier: Principal,
+    _member_identifier: Principal,
 ) -> Result<Group, ApiError> {
-    match Store::can_delete(caller(), group_identifier, member_identifier).await {
-        Ok(_caller) => Store::delete_group(_caller, group_identifier),
-        Err(err) => Err(err),
-    }
+    Store::delete_group(caller(), group_identifier)
 }
 
+#[update(guard = "auth")]
 pub fn add_wallet(
     group_identifier: Principal,
     wallet_canister: Principal,
@@ -140,6 +113,7 @@ pub fn add_wallet(
     Store::add_wallet(caller(), group_identifier, wallet_canister, description)
 }
 
+#[update(guard = "auth")]
 pub fn remove_wallet(
     group_identifier: Principal,
     wallet_canister: Principal,
@@ -148,8 +122,7 @@ pub fn remove_wallet(
 }
 
 // This method is used to add a custom role to a group
-#[update]
-#[candid_method(update)]
+#[update(guard = "auth")]
 async fn add_role(
     group_identifier: Principal,
     role_name: String,
@@ -164,8 +137,7 @@ async fn add_role(
 }
 
 // This method is used to remove a custom role from a group
-#[update]
-#[candid_method(update)]
+#[update(guard = "auth")]
 async fn remove_role(
     group_identifier: Principal,
     role_name: String,
@@ -179,14 +151,12 @@ async fn remove_role(
 
 // This method is used to get all the roles of a group
 #[query]
-#[candid_method(query)]
 fn get_group_roles(group_identifier: Principal) -> Vec<GroupRole> {
     Store::get_group_roles(group_identifier)
 }
 
 // This method is used to update the persmissions of a specific role
-#[update]
-#[candid_method(update)]
+#[update(guard = "auth")]
 async fn edit_role_permissions(
     group_identifier: Principal,
     role_name: String,
@@ -204,16 +174,21 @@ async fn edit_role_permissions(
 // This method is used as an inter canister call to update the member count per canister
 // Member count is used for backend filtering
 // TODO: distinct member_canister and caller
-#[update]
-#[candid_method(update)]
+#[update(guard = "auth")]
 pub fn update_member_count(
     group_identifier: Principal,
     member_canister: Principal,
     member_count: usize,
 ) -> Result<(), bool> {
-    let _caller = caller();
-    if _caller == member_canister {
+    if caller() == member_canister {
         return Store::update_member_count(group_identifier, member_canister, member_count);
     }
     return Err(false);
+}
+
+pub fn auth() -> Result<(), String> {
+    match caller() == Principal::anonymous() {
+        true => Err("Unauthorized".to_string()),
+        false => Ok(()),
+    }
 }

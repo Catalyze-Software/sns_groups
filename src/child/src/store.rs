@@ -1,9 +1,8 @@
 use std::{collections::HashMap, iter::FromIterator, vec};
 
 use candid::Principal;
-use ic_cdk::api::{call, time};
-use ic_scalable_canister::store::Data;
-use ic_scalable_misc::{
+use ic_cdk::api::{self, call, time};
+use ic_scalable_canister::ic_scalable_misc::{
     enums::{
         api_error_type::{ApiError, ApiErrorType},
         filter_type::FilterType,
@@ -27,6 +26,7 @@ use ic_scalable_misc::{
         permissions_models::{Permission, PermissionActionType, PermissionType, PostPermission},
     },
 };
+use ic_scalable_canister::store::Data;
 
 use shared::group_model::{Group, GroupFilter, GroupResponse, GroupSort, PostGroup, UpdateGroup};
 use std::cell::RefCell;
@@ -34,9 +34,32 @@ use std::cell::RefCell;
 use crate::{validation::validate_post_group, IDENTIFIER_KIND};
 
 use super::validation::validate_update_group;
+use ic_stable_structures::{
+    memory_manager::{MemoryId, MemoryManager, VirtualMemory},
+    {DefaultMemoryImpl, StableBTreeMap, StableCell},
+};
 
+type Memory = VirtualMemory<DefaultMemoryImpl>;
+
+pub static DATA_MEMORY_ID: MemoryId = MemoryId::new(0);
+pub static ENTRIES_MEMORY_ID: MemoryId = MemoryId::new(1);
 thread_local! {
-    pub static DATA: RefCell<Data<Group>> = RefCell::new(Data::default());
+    pub static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> =
+        RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
+
+    // NEW STABLE
+    pub static STABLE_DATA: RefCell<StableCell<Data, Memory>> = RefCell::new(
+        StableCell::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(DATA_MEMORY_ID)),
+            Data::default(),
+        ).expect("failed")
+    );
+
+    pub static ENTRIES: RefCell<StableBTreeMap<String, Group, Memory>> = RefCell::new(
+        StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(ENTRIES_MEMORY_ID)),
+        )
+    );
 }
 
 pub struct Store;
@@ -70,44 +93,47 @@ impl Store {
             updated_on: time(),
             created_on: time(),
             wallets: HashMap::new(),
+            privacy_gated_type_amount: temp_group.privacy_gated_type_amount,
         };
 
         let add_entry_result = match Self::validate_group_privacy(
             caller,
             account_identifier,
             post_group.privacy.clone(),
+            temp_group.privacy_gated_type_amount.clone(),
         )
         .await
         {
             Err(err) => Err(err),
             Ok(_) => {
-                DATA.with(|data| match validate_post_group(post_group) {
+                STABLE_DATA.with(|data| match validate_post_group(post_group) {
                     // Return an error if the group data is invalid
                     Err(err) => Err(err),
 
                     // Add the group to the data store and pass in the "kind" as a third parameter to generate a identifier
-                    Ok(_) => {
+                    Ok(_) => ENTRIES.with(|entries| {
                         match Data::add_entry(
                             data,
+                            entries,
                             new_group.clone(),
                             Some(IDENTIFIER_KIND.to_string()),
                         ) {
                             Err(err) => Err(err),
                             Ok(result) => Ok(result),
                         }
-                    }
+                    }),
                 })
             }
         };
 
         // Check if the group was added to the data store successfully
+        let _data = STABLE_DATA.with(|v| v.borrow().get().clone());
         match add_entry_result {
             // The group was not added to the data store because the canister is at capacity
             Err(err) => match err {
                 ApiError::CanisterAtCapacity(message) => {
-                    let _data = DATA.with(|v| v.borrow().clone());
                     // Spawn a sibling canister and pass the group data to it
-                    match Data::spawn_sibling(_data, new_group.clone()).await {
+                    match Data::spawn_sibling(&_data, new_group.clone()).await {
                         Ok(_) => Err(ApiError::CanisterAtCapacity(message)),
                         Err(err) => Err(err),
                     }
@@ -119,12 +145,15 @@ impl Store {
                 match Self::add_owner(&caller, &_identifier, &member_canister).await {
                     Err(err) => {
                         // If the owner was not added to the member canister successfully, remove the group from the data store
-                        DATA.with(|data| Data::remove_entry(data, &_identifier));
+                        ENTRIES.with(|data| Data::remove_entry(data, &_identifier));
                         Err(err)
                     }
                     Ok((_identifier, _group_data)) => {
                         // If successfull return the group data
-                        Ok(Self::map_group_to_group_response(_identifier, _group_data))
+                        Ok(Self::map_group_to_group_response(
+                            _identifier.to_string(),
+                            _group_data,
+                        ))
                     }
                 }
             }
@@ -144,11 +173,11 @@ impl Store {
         ]);
 
         // Validate the "update_group" data
-        DATA.with(|data| match validate_update_group(update_group.clone()) {
+        STABLE_DATA.with(|data| match validate_update_group(update_group.clone()) {
             Err(err) => Err(err),
             Ok(_) => {
                 // Check if the group exists in the data store
-                match Data::get_entry(data, group_identifier) {
+                match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
                     // Return an error if the group does not exist
                     Err(err) => Err(err),
                     Ok((_identifier, mut _group_data)) => {
@@ -158,7 +187,7 @@ impl Store {
                                 ApiErrorType::BadRequest,
                                 "DELETED_GROUP",
                                 "You cant update a deleted group",
-                                Data::get_name(data).as_str(),
+                                Data::get_name(data.borrow().get()).as_str(),
                                 "update_group",
                                 inputs,
                             ));
@@ -171,15 +200,21 @@ impl Store {
                         _group_data.privacy = update_group.privacy;
                         _group_data.image = update_group.image;
                         _group_data.banner_image = update_group.banner_image;
+                        _group_data.privacy_gated_type_amount =
+                            update_group.privacy_gated_type_amount;
                         _group_data.tags = update_group.tags;
                         _group_data.updated_on = time();
 
-                        let update_group_result =
-                            Data::update_entry(data, group_identifier, _group_data);
+                        let update_group_result = ENTRIES.with(|entries| {
+                            Data::update_entry(data, entries, group_identifier, _group_data)
+                        });
                         match update_group_result {
                             Err(err) => Err(err),
                             Ok((_identifier, _group_data)) => {
-                                Ok(Self::map_group_to_group_response(_identifier, _group_data))
+                                Ok(Self::map_group_to_group_response(
+                                    _identifier.to_string(),
+                                    _group_data,
+                                ))
                             }
                         }
                     }
@@ -194,9 +229,9 @@ impl Store {
             format!("caller - {:?}", &caller),
             format!("id - {:?}", &identifier),
         ]);
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             // Check if the group exists in the data store
-            match Data::get_entry(data, identifier) {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
                 Err(err) => Err(err),
                 Ok((_identifier, mut _group_data)) => {
                     // Check of the group owner is also the caller
@@ -205,17 +240,18 @@ impl Store {
                             ApiErrorType::Unauthorized,
                             "CANT_DELETE_GROUP",
                             "Only the owner can delete the group",
-                            Data::get_name(data).as_str(),
+                            Data::get_name(data.borrow().get()).as_str(),
                             "delete_group",
                             inputs,
                         ));
                     }
-
+                    
                     _group_data.is_deleted = true;
                     _group_data.updated_on = time();
 
-                    let update_group_result =
-                        Data::update_entry(data, _identifier, _group_data.clone());
+                    let update_group_result = ENTRIES.with(|entries| {
+                        Data::update_entry(data, entries, _identifier, _group_data.clone())
+                    });
 
                     match update_group_result {
                         Err(err) => Err(err),
@@ -228,10 +264,26 @@ impl Store {
 
     // Method to get a group with an identifier from the data store
     pub fn get_group(identifier: Principal) -> Result<GroupResponse, ApiError> {
-        DATA.with(|data| match Data::get_entry(data, identifier) {
-            Err(err) => Err(err),
-            Ok((_identifier, _group_data)) => {
-                Ok(Self::map_group_to_group_response(_identifier, _group_data))
+        STABLE_DATA.with(|data| {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
+                Err(err) => Err(err),
+                Ok((_identifier, _group_data)) => {
+                    if _group_data.is_deleted {
+                        return Err(api_error(
+                            ApiErrorType::NotFound,
+                            "GROUP_NOT_FOUND",
+                            "No group found",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "get_group",
+                            None,
+                        ));
+                    }
+
+                    Ok(Self::map_group_to_group_response(
+                        _identifier.to_string(),
+                        _group_data,
+                    ))
+                }
             }
         })
     }
@@ -248,29 +300,32 @@ impl Store {
             format!("wallet_canister - {:?}", &wallet_canister),
             format!("description - {:?}", &description),
         ]);
-        DATA.with(|data| match Data::get_entry(data, group_identifier) {
-            Err(err) => Err(err),
-            Ok((_identifier, mut _group_data)) => {
-                if _group_data.owner != caller {
-                    return Err(api_error(
-                        ApiErrorType::Unauthorized,
-                        "CANT_ADD_WALLET",
-                        "Only the owner can add a wallet",
-                        Data::get_name(data).as_str(),
-                        "add_wallet",
-                        inputs,
-                    ));
-                }
+        STABLE_DATA.with(|data| {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
+                Err(err) => Err(err),
+                Ok((_identifier, mut _group_data)) => {
+                    if _group_data.owner != caller {
+                        return Err(api_error(
+                            ApiErrorType::Unauthorized,
+                            "CANT_ADD_WALLET",
+                            "Only the owner can add a wallet",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "add_wallet",
+                            inputs,
+                        ));
+                    }
 
-                _group_data.wallets.insert(wallet_canister, description);
-                _group_data.updated_on = time();
+                    _group_data.wallets.insert(wallet_canister, description);
+                    _group_data.updated_on = time();
 
-                let update_group_result =
-                    Data::update_entry(data, _identifier, _group_data.clone());
+                    let update_group_result = ENTRIES.with(|entries| {
+                        Data::update_entry(data, entries, _identifier, _group_data.clone())
+                    });
 
-                match update_group_result {
-                    Err(err) => Err(err),
-                    Ok(_) => Ok(()),
+                    match update_group_result {
+                        Err(err) => Err(err),
+                        Ok(_) => Ok(()),
+                    }
                 }
             }
         })
@@ -286,9 +341,9 @@ impl Store {
             format!("group_identifier - {:?}", &group_identifier),
             format!("wallet_canister - {:?}", &wallet_canister),
         ]);
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             // Check if the group exists in the data store
-            match Data::get_entry(data, group_identifier) {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
                 Err(err) => Err(err),
                 Ok((_identifier, mut _group_data)) => {
                     if _group_data.owner != caller {
@@ -296,7 +351,7 @@ impl Store {
                             ApiErrorType::Unauthorized,
                             "CANT_DELETE_WALLET",
                             "Only the owner can delete a wallet",
-                            Data::get_name(data).as_str(),
+                            Data::get_name(data.borrow().get()).as_str(),
                             "remove_wallet",
                             inputs,
                         ));
@@ -305,8 +360,9 @@ impl Store {
                     _group_data.wallets.remove(&wallet_canister);
                     _group_data.updated_on = time();
 
-                    let update_group_result =
-                        Data::update_entry(data, _identifier, _group_data.clone());
+                    let update_group_result = ENTRIES.with(|entries| {
+                        Data::update_entry(data, entries, _identifier, _group_data.clone())
+                    });
 
                     match update_group_result {
                         Err(err) => Err(err),
@@ -321,9 +377,11 @@ impl Store {
     pub fn get_group_owner_and_privacy(
         identifier: Principal,
     ) -> Result<(Principal, Privacy), ApiError> {
-        DATA.with(|data| match Data::get_entry(data, identifier) {
-            Err(err) => Err(err),
-            Ok((_, _group_data)) => Ok((_group_data.owner, _group_data.privacy)),
+        STABLE_DATA.with(|data| {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, identifier)) {
+                Err(err) => Err(err),
+                Ok((_, _group_data)) => Ok((_group_data.owner, _group_data.privacy)),
+            }
         })
     }
 
@@ -336,7 +394,7 @@ impl Store {
         sort: GroupSort,
         include_invite_only: bool,
     ) -> PagedResponse<GroupResponse> {
-        let groups = DATA.with(|data| Data::get_entries(data));
+        let groups = ENTRIES.with(|data| Data::get_entries(data));
         // Get groups for filtering and sorting
         let mapped_groups: Vec<GroupResponse> = groups
             .iter()
@@ -373,7 +431,7 @@ impl Store {
         chunk: usize,
         max_bytes_per_chunk: usize,
     ) -> (Vec<u8>, (usize, usize)) {
-        let groups = DATA.with(|data| Data::get_entries(data));
+        let groups = ENTRIES.with(|entries| Data::get_entries(entries));
         // Get groups for filtering
         let mapped_groups: Vec<GroupResponse> = groups
             .iter()
@@ -420,19 +478,22 @@ impl Store {
 
     // Method to get multiple groups with an identifier from the data store
     pub fn get_groups_by_id(group_ids: Vec<Principal>) -> Vec<GroupResponse> {
-        DATA.with(|data| {
+        STABLE_DATA.with(|data| {
             let mut groups: Vec<GroupResponse> = vec![];
 
             // Loop over the group ids and get the group data
             group_ids.into_iter().for_each(|_identifier| {
-                let existing = Data::get_entry(data, _identifier);
+                let existing = ENTRIES.with(|entries| Data::get_entry(data, entries, _identifier));
 
                 // If the group data exists, map it to a group response and push it to the groups vec
                 match existing {
                     Err(_) => {}
                     Ok((_identifier, _group_data)) => {
                         if !_group_data.is_deleted {
-                            groups.push(Self::map_group_to_group_response(_identifier, _group_data))
+                            groups.push(Self::map_group_to_group_response(
+                                _identifier.to_string(),
+                                _group_data,
+                            ))
                         }
                     }
                 };
@@ -456,57 +517,60 @@ impl Store {
         ]);
 
         // get the group data
-        DATA.with(|data| match Data::get_entry(data, group_identifier) {
-            Err(err) => Err(err),
-            Ok((_identifier, mut _group_data)) => {
-                // check if the caller is the owner of the group
-                if _group_data.owner != caller {
-                    return Err(api_error(
-                        ApiErrorType::Unauthorized,
-                        "UNAUTHORIZED",
-                        "Only owner of a group can add roles",
-                        Data::get_name(data).as_str(),
-                        "add_role",
-                        inputs,
-                    ));
-                }
+        STABLE_DATA.with(|data| {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
+                Err(err) => Err(err),
+                Ok((_identifier, mut _group_data)) => {
+                    // check if the caller is the owner of the group
+                    if _group_data.owner != caller {
+                        return Err(api_error(
+                            ApiErrorType::Unauthorized,
+                            "UNAUTHORIZED",
+                            "Only owner of a group can add roles",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "add_role",
+                            inputs,
+                        ));
+                    }
 
-                let mut roles = _group_data.roles;
-                let included_role = roles.iter().any(|r| r.name == role_name);
+                    let mut roles = _group_data.roles;
+                    let included_role = roles.iter().any(|r| r.name == role_name);
 
-                // check if the role name already exists in the custom or default roles
-                if included_role || default_roles().iter().any(|r| r.name == role_name) {
-                    return Err(api_error(
-                        ApiErrorType::BadRequest,
-                        "EXISTING_ROLE",
-                        "This role is already registered",
-                        Data::get_name(data).as_str(),
-                        "add_role",
-                        inputs,
-                    ));
-                };
+                    // check if the role name already exists in the custom or default roles
+                    if included_role || default_roles().iter().any(|r| r.name == role_name) {
+                        return Err(api_error(
+                            ApiErrorType::BadRequest,
+                            "EXISTING_ROLE",
+                            "This role is already registered",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "add_role",
+                            inputs,
+                        ));
+                    };
 
-                let new_role = GroupRole {
-                    name: role_name,
-                    protected: false,
-                    // set default permissions to read-only
-                    permissions: get_read_only_permissions(),
-                    color,
-                    // optional sorting index
-                    index: Some(index),
-                };
+                    let new_role = GroupRole {
+                        name: role_name,
+                        protected: false,
+                        // set default permissions to read-only
+                        permissions: get_read_only_permissions(),
+                        color,
+                        // optional sorting index
+                        index: Some(index),
+                    };
 
-                roles.push(new_role.clone());
+                    roles.push(new_role.clone());
 
-                _group_data.roles = roles;
-                _group_data.updated_on = time();
+                    _group_data.roles = roles;
+                    _group_data.updated_on = time();
 
-                let update_group_result =
-                    Data::update_entry(data, group_identifier, _group_data.clone());
+                    let update_group_result = ENTRIES.with(|entries| {
+                        Data::update_entry(data, entries, group_identifier, _group_data.clone())
+                    });
 
-                match update_group_result {
-                    Err(err) => Err(err),
-                    Ok(_) => Ok(new_role),
+                    match update_group_result {
+                        Err(err) => Err(err),
+                        Ok(_) => Ok(new_role),
+                    }
                 }
             }
         })
@@ -525,25 +589,28 @@ impl Store {
         )
         .await;
 
-        DATA.with(|data| match add_owner_response {
+        STABLE_DATA.with(|data| match add_owner_response {
             Err(err) => Err(api_error(
                 ApiErrorType::BadRequest,
                 "OWNER_NOT_ADDED",
                 err.1.as_str(),
-                Data::get_name(data).as_str(),
+                Data::get_name(data.borrow().get()).as_str(),
                 "add_owner",
                 None,
             )),
             Ok((_add_owner_response,)) => match _add_owner_response {
                 Err(err) => Err(err),
                 Ok(_owner_identifier) => {
-                    let group = Data::get_entry(data, group_identifier.clone());
+                    let group = ENTRIES
+                        .with(|entries| Data::get_entry(data, entries, group_identifier.clone()));
                     match group {
                         Err(err) => Err(err),
                         Ok((_identifier, mut _group_data)) => {
                             _group_data.owner = owner_principal.clone();
                             _group_data.updated_on = time();
-                            Data::update_entry(data, _identifier, _group_data)
+                            ENTRIES.with(|entries| {
+                                Data::update_entry(data, entries, _identifier, _group_data)
+                            })
                         }
                     }
                 }
@@ -553,7 +620,8 @@ impl Store {
 
     // Method to get a list of all group roles
     pub fn get_group_roles(group_identifier: Principal) -> Vec<GroupRole> {
-        let group = DATA.with(|data| Data::get_entry(data, group_identifier));
+        let group = STABLE_DATA
+            .with(|data| ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)));
         if let Ok((_, mut _group)) = group {
             _group.roles.append(&mut default_roles());
             return _group.roles;
@@ -574,62 +642,65 @@ impl Store {
             format!("role_name` - {:?}", &role_name),
         ]);
 
-        DATA.with(|data| match Data::get_entry(data, group_identifier) {
-            Err(err) => Err(err),
-            Ok((_identifier, mut _group_data)) => {
-                // check if the caller is the owner of the group
-                if _group_data.owner != caller {
-                    return Err(api_error(
-                        ApiErrorType::Unauthorized,
-                        "UNAUTHORIZED",
-                        "Only owner of a group can add roles",
-                        Data::get_name(data).as_str(),
-                        "add_role",
-                        inputs,
-                    ));
-                }
-                // check if the role exists
-                let existing_role = _group_data.roles.iter().find(|r| r.name == role_name);
+        STABLE_DATA.with(|data| {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
+                Err(err) => Err(err),
+                Ok((_identifier, mut _group_data)) => {
+                    // check if the caller is the owner of the group
+                    if _group_data.owner != caller {
+                        return Err(api_error(
+                            ApiErrorType::Unauthorized,
+                            "UNAUTHORIZED",
+                            "Only owner of a group can add roles",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "add_role",
+                            inputs,
+                        ));
+                    }
+                    // check if the role exists
+                    let existing_role = _group_data.roles.iter().find(|r| r.name == role_name);
 
-                match existing_role {
-                    None => Err(api_error(
-                        ApiErrorType::NotFound,
-                        "ROLE_NOT_FOUND",
-                        "The role cant be found for this group",
-                        Data::get_name(data).as_str(),
-                        "remove_role",
-                        inputs,
-                    )),
-                    Some(_role) => {
-                        // if the role is protected (default roles) then return an error
-                        if _role.protected {
-                            return Err(api_error(
-                                ApiErrorType::BadRequest,
-                                "PROTECTED_ROLE",
-                                "This role is protected from deletion",
-                                Data::get_name(data).as_str(),
-                                "remove_role",
-                                inputs,
-                            ));
-                        };
+                    match existing_role {
+                        None => Err(api_error(
+                            ApiErrorType::NotFound,
+                            "ROLE_NOT_FOUND",
+                            "The role cant be found for this group",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "remove_role",
+                            inputs,
+                        )),
+                        Some(_role) => {
+                            // if the role is protected (default roles) then return an error
+                            if _role.protected {
+                                return Err(api_error(
+                                    ApiErrorType::BadRequest,
+                                    "PROTECTED_ROLE",
+                                    "This role is protected from deletion",
+                                    Data::get_name(data.borrow().get()).as_str(),
+                                    "remove_role",
+                                    inputs,
+                                ));
+                            };
 
-                        // remove the role to update from the existing roles
-                        let updated_roles: Vec<GroupRole> = _group_data
-                            .roles
-                            .iter()
-                            .filter(|r| r.name != role_name)
-                            .cloned()
-                            .collect();
+                            // remove the role to update from the existing roles
+                            let updated_roles: Vec<GroupRole> = _group_data
+                                .roles
+                                .iter()
+                                .filter(|r| r.name != role_name)
+                                .cloned()
+                                .collect();
 
-                        _group_data.roles = updated_roles;
-                        _group_data.updated_on = time();
+                            _group_data.roles = updated_roles;
+                            _group_data.updated_on = time();
 
-                        let update_group_result =
-                            Data::update_entry(data, _identifier, _group_data);
+                            let update_group_result = ENTRIES.with(|entries| {
+                                Data::update_entry(data, entries, _identifier, _group_data)
+                            });
 
-                        match update_group_result {
-                            Err(err) => Err(err),
-                            Ok(_) => Ok(true),
+                            match update_group_result {
+                                Err(err) => Err(err),
+                                Ok(_) => Ok(true),
+                            }
                         }
                     }
                 }
@@ -652,127 +723,133 @@ impl Store {
             format!("permissions - {:?}", &post_permissions),
         ]);
 
-        DATA.with(|data| match Data::get_entry(data, group_identifier) {
-            Err(err) => Err(err),
-            Ok((_identifier, mut _group_data)) => {
-                // check if the caller is the owner of the group
-                if _group_data.owner != caller {
-                    return Err(api_error(
-                        ApiErrorType::Unauthorized,
-                        "UNAUTHORIZED",
-                        "Only owner of a group can add roles",
-                        Data::get_name(data).as_str(),
-                        "add_role",
-                        inputs,
-                    ));
-                }
+        STABLE_DATA.with(|data| {
+            match ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)) {
+                Err(err) => Err(err),
+                Ok((_identifier, mut _group_data)) => {
+                    // check if the caller is the owner of the group
+                    if _group_data.owner != caller {
+                        return Err(api_error(
+                            ApiErrorType::Unauthorized,
+                            "UNAUTHORIZED",
+                            "Only owner of a group can add roles",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "add_role",
+                            inputs,
+                        ));
+                    }
 
-                // check if the role exists
-                let existing_role = _group_data.roles.iter().find(|r| r.name == role_name);
-                match existing_role {
-                    None => Err(api_error(
-                        ApiErrorType::NotFound,
-                        "ROLE_NOT_FOUND",
-                        "The role cant be found for this group",
-                        Data::get_name(data).as_str(),
-                        "remove_role",
-                        inputs,
-                    )),
-                    Some(_role) => {
-                        let mut permissions: Vec<Permission> = vec![];
-                        let required_permissions = get_read_only_permissions();
+                    // check if the role exists
+                    let existing_role = _group_data.roles.iter().find(|r| r.name == role_name);
+                    match existing_role {
+                        None => Err(api_error(
+                            ApiErrorType::NotFound,
+                            "ROLE_NOT_FOUND",
+                            "The role cant be found for this group",
+                            Data::get_name(data.borrow().get()).as_str(),
+                            "remove_role",
+                            inputs,
+                        )),
+                        Some(_role) => {
+                            let mut permissions: Vec<Permission> = vec![];
+                            let required_permissions = get_read_only_permissions();
 
-                        // iterate over the permissions passed as an argument
-                        post_permissions.iter().for_each(|p| {
-                            let required_permission =
-                                required_permissions.iter().find(|r| r.name == p.name);
+                            // iterate over the permissions passed as an argument
+                            post_permissions.iter().for_each(|p| {
+                                let required_permission =
+                                    required_permissions.iter().find(|r| r.name == p.name);
 
-                            // check if the permission is a required permission
-                            match required_permission {
-                                None => permissions.push(Permission {
-                                    name: p.name.clone(),
-                                    protected: false,
-                                    actions: p.actions.clone(),
-                                }),
-                                Some(_permission) => {
-                                    // if the permission is protected set the actions as default
-                                    if _permission.protected {
-                                        permissions.push(Permission {
-                                            name: _permission.name.clone(),
-                                            protected: _permission.protected,
-                                            actions: _permission.actions.clone(),
-                                        })
-                                    } else {
-                                        permissions.push(Permission {
-                                            name: _permission.name.clone(),
-                                            protected: _permission.protected,
-                                            actions: p.actions.clone(),
-                                        })
+                                // check if the permission is a required permission
+                                match required_permission {
+                                    None => permissions.push(Permission {
+                                        name: p.name.clone(),
+                                        protected: false,
+                                        actions: p.actions.clone(),
+                                    }),
+                                    Some(_permission) => {
+                                        // if the permission is protected set the actions as default
+                                        if _permission.protected {
+                                            permissions.push(Permission {
+                                                name: _permission.name.clone(),
+                                                protected: _permission.protected,
+                                                actions: _permission.actions.clone(),
+                                            })
+                                        } else {
+                                            permissions.push(Permission {
+                                                name: _permission.name.clone(),
+                                                protected: _permission.protected,
+                                                actions: p.actions.clone(),
+                                            })
+                                        }
                                     }
                                 }
+                            });
+
+                            let updated_role = GroupRole {
+                                name: _role.name.clone(),
+                                protected: _role.protected,
+                                permissions,
+                                // optional color for frontend consumption
+                                color: _role.color.clone(),
+                                index: _role.index,
+                            };
+
+                            let mut roles: Vec<GroupRole> = _group_data
+                                .roles
+                                .iter()
+                                .filter(|r| &r.name != &_role.name)
+                                .cloned()
+                                .collect();
+
+                            roles.push(updated_role);
+
+                            _group_data.roles = roles;
+                            _group_data.updated_on = time();
+
+                            let update_group_result = ENTRIES.with(|entries| {
+                                Data::update_entry(data, entries, _identifier, _group_data)
+                            });
+
+                            match update_group_result {
+                                Err(err) => Err(err),
+                                Ok(_) => Ok(true),
                             }
-                        });
-
-                        let updated_role = GroupRole {
-                            name: _role.name.clone(),
-                            protected: _role.protected,
-                            permissions,
-                            // optional color for frontend consumption
-                            color: _role.color.clone(),
-                            index: _role.index,
-                        };
-
-                        let mut roles: Vec<GroupRole> = _group_data
-                            .roles
-                            .iter()
-                            .filter(|r| &r.name != &_role.name)
-                            .cloned()
-                            .collect();
-
-                        roles.push(updated_role);
-
-                        _group_data.roles = roles;
-                        _group_data.updated_on = time();
-
-                        let update_group_result =
-                            Data::update_entry(data, _identifier, _group_data);
-
-                        match update_group_result {
-                            Err(err) => Err(err),
-                            Ok(_) => Ok(true),
                         }
                     }
                 }
             }
         })
     }
-
     async fn validate_group_privacy(
         caller: Principal,
         account_identifier: Option<String>,
         privacy: Privacy,
+        privacy_gated_type_amount: Option<u64>,
     ) -> Result<(), ApiError> {
         match privacy {
             Privacy::Public => Ok(()),
             Privacy::Private => Ok(()),
             Privacy::InviteOnly => Ok(()),
             Privacy::Gated(gated_type) => {
-                let mut is_valid = false;
+                let mut is_valid: u64 = 0;
                 use GatedType::*;
                 match gated_type {
                     Neuron(neuron_canisters) => {
                         for neuron_canister in neuron_canisters {
-                            is_valid = Self::validate_neuron_gated(
+                            if Self::validate_neuron_gated(
                                 caller,
                                 neuron_canister.governance_canister,
                                 neuron_canister.rules,
                             )
-                            .await;
-                            if is_valid {
+                            .await
+                            {
+                                is_valid += 1;
+                            }
+                            if is_valid >= privacy_gated_type_amount.unwrap_or_default() {
                                 break;
                             }
                         }
-                        if is_valid {
+                        if is_valid >= privacy_gated_type_amount.unwrap_or_default() {
                             Ok(())
                             // If the caller does not own the neuron, throw an error
                         } else {
@@ -780,7 +857,9 @@ impl Store {
                                 ApiErrorType::Unauthorized,
                                 "NOT_OWNING_NEURON",
                                 "You are not owning this neuron required to join this group",
-                                DATA.with(|data| Data::get_name(data)).as_str(),
+                                STABLE_DATA
+                                    .with(|data| Data::get_name(data.borrow().get()))
+                                    .as_str(),
                                 "validate_group_privacy",
                                 None,
                             ));
@@ -789,25 +868,30 @@ impl Store {
                     Token(nft_canisters) => {
                         // Loop over the canisters and check if the caller owns a specific NFT (inter-canister call)
                         for nft_canister in nft_canisters {
-                            is_valid = Self::validate_nft_gated(
+                            if Self::validate_nft_gated(
                                 caller,
                                 account_identifier.clone(),
-                                nft_canister,
+                                &nft_canister,
                             )
-                            .await;
-                            if is_valid {
+                            .await
+                            {
+                                is_valid += 1;
+                            }
+                            if is_valid >= privacy_gated_type_amount.unwrap_or_default() {
                                 break;
                             }
                         }
-                        if is_valid {
+                        if is_valid >= privacy_gated_type_amount.unwrap_or_default() {
                             Ok(())
-                            // If the caller does not own the NFT, throw an error
+                            // If the caller does not own the neuron, throw an error
                         } else {
                             return Err(api_error(
                                 ApiErrorType::Unauthorized,
                                 "NOT_OWNING_NFT",
                                 "You are not owning NFT / token required to join this group",
-                                DATA.with(|data| Data::get_name(data)).as_str(),
+                                STABLE_DATA
+                                    .with(|data| Data::get_name(data.borrow().get()))
+                                    .as_str(),
                                 "add_invite_or_join_group_to_member",
                                 None,
                             ));
@@ -822,7 +906,7 @@ impl Store {
     pub async fn validate_nft_gated(
         principal: Principal,
         account_identifier: Option<String>,
-        nft_canister: TokenGated,
+        nft_canister: &TokenGated,
     ) -> bool {
         // Check if the canister is a EXT, DIP20 or DIP721 canister
         match nft_canister.standard.as_str() {
@@ -851,7 +935,22 @@ impl Store {
                 let response = legacy_dip721_balance_of(nft_canister.principal, principal).await;
                 response as u64 >= nft_canister.amount
             }
+            // If the canister is a ICRC canister, check if the caller owns the amount of tokens
+            "ICRC" => {
+                let response = Self::icrc_balance_of(nft_canister.principal, principal).await;
+                response >= nft_canister.amount as u128
+            }
             _ => false,
+        }
+    }
+
+    // temporary put this here, should be in `ic_scalable_misc::helpers::token_canister_helper`
+    pub async fn icrc_balance_of(canister: Principal, principal: Principal) -> u128 {
+        let call: Result<(u128,), _> =
+            api::call::call(canister, "icrc1_balance_of", (principal,)).await;
+        match call {
+            Ok(response) => response.0,
+            Err(_) => 0,
         }
     }
 
@@ -1011,6 +1110,12 @@ impl Store {
         filters: Vec<GroupFilter>,
         filter_type: FilterType,
     ) -> Vec<GroupResponse> {
+        if let FilterType::Or = filter_type {
+            if filters.len() == 0 {
+                return groups;
+            }
+        }
+
         match filter_type {
             // this filter type will return groups that match all the filters
             FilterType::And => {
@@ -1191,11 +1296,11 @@ impl Store {
     }
 
     // Method to map groups to a default response that can be used on the frontend
-    pub fn map_group_to_group_response(identifier: Principal, group: Group) -> GroupResponse {
+    pub fn map_group_to_group_response(identifier: String, group: Group) -> GroupResponse {
         let mut roles = group.roles;
         roles.append(&mut default_roles());
         GroupResponse {
-            identifier,
+            identifier: Principal::from_text(identifier).unwrap_or(Principal::anonymous()),
             name: group.name,
             description: group.description,
             website: group.website,
@@ -1207,9 +1312,15 @@ impl Store {
             image: group.image,
             banner_image: group.banner_image,
             tags: group.tags,
+            wallets: group
+                .wallets
+                .into_iter()
+                .map(|(key, value)| (key, value))
+                .collect(),
             roles,
             member_count: group.member_count.into_iter().map(|(_, value)| value).sum(),
             is_deleted: group.is_deleted,
+            privacy_gated_type_amount: group.privacy_gated_type_amount,
             updated_on: group.updated_on,
             created_on: group.created_on,
         }
@@ -1229,12 +1340,14 @@ impl Store {
             return Err(false);
         };
 
-        DATA.with(|data| {
-            let existing = Data::get_entry(data, group_identifier);
+        STABLE_DATA.with(|data| {
+            let existing = ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier));
             match existing {
                 Ok((_, mut _group)) => {
                     _group.member_count.insert(member_canister, member_count);
-                    let _ = Data::update_entry(data, group_identifier, _group);
+                    let _ = ENTRIES.with(|entries| {
+                        Data::update_entry(data, entries, group_identifier, _group)
+                    });
                     Ok(())
                 }
                 Err(_) => Err(false),
@@ -1278,6 +1391,14 @@ impl Store {
         group_identifier: Principal,
         member_identifier: Principal,
     ) -> Result<Principal, ApiError> {
+        if let Ok((_, _group)) = STABLE_DATA
+            .with(|data| ENTRIES.with(|entries| Data::get_entry(data, entries, group_identifier)))
+        {
+            if _group.owner == caller {
+                return Ok(caller);
+            }
+        }
+
         Self::check_permission(
             caller,
             group_identifier,
@@ -1320,7 +1441,9 @@ impl Store {
                         ApiErrorType::Unauthorized,
                         "PRINCIPAL_MISMATCH",
                         "Principal mismatch",
-                        DATA.with(|data| Data::get_name(data)).as_str(),
+                        STABLE_DATA
+                            .with(|data| Data::get_name(data.borrow().get()))
+                            .as_str(),
                         "check_permission",
                         None,
                     ));
@@ -1338,7 +1461,9 @@ impl Store {
                         ApiErrorType::Unauthorized,
                         "NO_PERMISSION",
                         "No permission",
-                        DATA.with(|data| Data::get_name(data)).as_str(),
+                        STABLE_DATA
+                            .with(|data| Data::get_name(data.borrow().get()))
+                            .as_str(),
                         "check_permission",
                         Some(vec![
                             serde_json::to_string(&_roles).unwrap(),
@@ -1353,7 +1478,9 @@ impl Store {
                 ApiErrorType::Unauthorized,
                 "NO_PERMISSION",
                 err.as_str(),
-                DATA.with(|data| Data::get_name(data)).as_str(),
+                STABLE_DATA
+                    .with(|data| Data::get_name(data.borrow().get()))
+                    .as_str(),
                 "check_permission",
                 None,
             )),
