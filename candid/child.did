@@ -257,6 +257,7 @@ service : (principal, text, nat64) -> {
     ) query;
   get_groups_by_id : (vec principal) -> (Result_8) query;
   http_request : (HttpRequest) -> (HttpResponse) query;
+  read_groups_entries : () -> (vec record { text; Group }) query;
   remove_role : (principal, text, principal) -> (Result_5);
   remove_wallet : (principal, principal) -> (Result);
   restore_data : () -> ();
